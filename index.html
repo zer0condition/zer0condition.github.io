@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>wezo!</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+    :root {
+      --primary: #00d4aa;
+      --secondary: #6366f1;
+      --accent: #f59e0b;
+      --danger: #ef4444;
+      --bg-dark: #0a0a14;
+      --card-bg: rgba(18, 18, 28, 0.92);
+      --border: rgba(255,255,255,0.08);
+      --text-primary: #e2e8f0;
+      --text-secondary: #94a3b8;
+    }
+
+    body {
+      background: var(--bg-dark);
+      color: var(--text-primary);
+      font-family: 'JetBrains Mono', monospace;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    #canvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 1; opacity: 0.32; pointer-events: none;
+      transition: opacity 300ms ease;
+    }
+
+    /* Desktop Navigation */
+    .nav-container {
+      position: fixed;
+      left: 40px; top: 40px;
+      display: flex; flex-direction: column;
+      gap: 16px;
+      z-index: 100;
+    }
+
+    .nav-btn {
+      width: 48px; height: 48px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--primary); font-size: 0.9rem;
+      cursor: pointer; transition: all 0.2s ease;
+      background: var(--card-bg);
+    }
+
+    .nav-btn:hover, .nav-btn.active {
+      border-color: var(--primary);
+      background: rgba(0, 212, 170, 0.1);
+      transform: translateX(4px);
+    }
+
+    /* Terminal Toggle */
+    .terminal-toggle {
+      position: fixed;
+      bottom: 24px; right: 24px;
+      width: 56px; height: 56px;
+      border: 2px solid var(--border);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--primary); font-size: 1.2rem;
+      cursor: pointer; transition: all 0.3s ease;
+      background: var(--card-bg);
+      backdrop-filter: blur(20px);
+      z-index: 250;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+
+    .terminal-toggle:hover {
+      border-color: var(--primary);
+      background: rgba(0, 212, 170, 0.2);
+      transform: scale(1.1);
+    }
+
+    /* Mobile Hamburger Menu */
+    .mobile-nav {
+      display: none;
+      position: fixed;
+      top: 20px; right: 20px;
+      z-index: 150;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .mobile-nav:hover {
+      border-color: var(--primary);
+      background: rgba(0, 212, 170, 0.1);
+    }
+
+    .mobile-nav.active .hamburger-line:nth-child(1) {
+      transform: rotate(45deg) translate(6px, 6px);
+    }
+
+    .mobile-nav.active .hamburger-line:nth-child(2) {
+      opacity: 0;
+    }
+
+    .mobile-nav.active .hamburger-line:nth-child(3) {
+      transform: rotate(-45deg) translate(6px, -6px);
+    }
+
+    .hamburger-icon {
+      display: flex; flex-direction: column; gap: 3px;
+    }
+
+    .hamburger-line {
+      width: 24px; height: 2px;
+      background: var(--primary);
+      transition: all 0.3s ease;
+    }
+
+    .nav-menu {
+      position: fixed;
+      top: 0; right: -100%;
+      width: 100%; height: 100vh;
+      background: rgba(10, 10, 20, 0.98);
+      backdrop-filter: blur(30px);
+      z-index: 149;
+      padding: 100px 24px 24px;
+      transition: right 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      display: flex; flex-direction: column; gap: 20px;
+      overflow-y: auto;
+    }
+
+    .nav-menu.active {
+      right: 0;
+    }
+
+    .menu-item {
+      display: flex; align-items: center; gap: 16px;
+      padding: 20px 24px;
+      color: var(--text-primary);
+      text-decoration: none;
+      border-radius: 12px;
+      font-size: 1.1rem;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      border: 1px solid transparent;
+      flex-shrink: 0;
+    }
+
+    .menu-item:hover, .menu-item.active {
+      background: rgba(0, 212, 170, 0.2);
+      color: var(--primary);
+      border-color: var(--primary);
+      transform: translateX(8px);
+    }
+
+    .main-content {
+      position: relative; z-index: 50;
+      min-height: 100vh;
+      padding: 100px 28px 140px; /* Increased padding for larger cards */
+      max-width: 1400px; margin: 0 auto;
+    }
+
+    .section { display: none; }
+    .section.active { display: block; }
+
+    .section-header {
+      display: flex; align-items: center; gap: 16px;
+      margin-bottom: 48px; font-size: 2.2rem;
+      font-weight: 600; color: var(--text-primary);
+      flex-wrap: wrap;
+    }
+
+    .section-header i { color: var(--primary); font-size: 2.4rem; }
+
+    /* Terminal */
+    .terminal {
+      position: fixed; 
+      bottom: -420px; left: 50%;
+      transform: translateX(-50%);
+      width: 95%; max-width: 1100px;
+      max-height: 480px;
+      background: rgba(18,18,28,0.98);
+      border: 2px solid var(--border);
+      border-radius: 18px;
+      padding: 28px;
+      backdrop-filter: blur(26px);
+      z-index: 200;
+      transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      pointer-events: none;
+      box-shadow: 0 28px 80px rgba(0,0,0,0.65);
+    }
+
+    .terminal.active {
+      bottom: 24px;
+      pointer-events: auto;
+    }
+
+    .terminal-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 16px; padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .terminal-title {
+      color: var(--primary); font-weight: 600; font-size: 1rem;
+    }
+
+    .terminal-close {
+      background: none; border: 1px solid var(--danger);
+      color: var(--danger); width: 28px; height: 28px;
+      border-radius: 50%; cursor: pointer; font-size: 0.9rem;
+      transition: all 0.2s ease;
+    }
+
+    .terminal-close:hover {
+      background: var(--danger); color: white;
+    }
+
+    .terminal-content {
+      height: 200px; overflow-y: auto;
+      font-size: 0.85rem; color: var(--text-secondary);
+      margin-bottom: 16px; font-family: 'JetBrains Mono', monospace;
+      background: rgba(0,0,0,0.2);
+      padding: 12px; border-radius: 8px;
+    }
+
+    .terminal-content div.success { color: var(--accent) !important; }
+    .terminal-content div.error { color: var(--danger) !important; }
+
+    .terminal-input-container {
+      display: flex; align-items: center; gap: 12px;
+      background: rgba(0,0,0,0.3);
+      padding: 12px 16px;
+      border-radius: 8px;
+    }
+
+    .prompt { 
+      color: var(--primary); font-weight: 600; 
+      font-size: 0.85rem; white-space: nowrap;
+    }
+
+    #terminalInput {
+      flex: 1; background: none; border: none;
+      color: var(--text-primary); font-family: inherit;
+      font-size: 0.85rem; outline: none;
+    }
+
+    #terminalInput::placeholder {
+      color: var(--text-secondary);
+    }
+
+    /* GitHub Profile */
+    .github-profile {
+      background: linear-gradient(135deg, var(--bg-dark) 0%, rgba(20,20,30,0.96) 100%);
+      border-radius: 20px;
+      padding: 72px 48px;
+      margin-bottom: 48px;
+      border: 2px solid var(--border);
+      position: relative;
+      overflow: hidden;
+      text-align: center;
+      box-shadow: 0 36px 90px rgba(0,0,0,0.6);
+    }
+
+    /* top decorative bar removed to match site theme */
+
+    .profile-main {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    .avatar-container {
+      position: relative;
+      width: 140px;
+      height: 140px;
+    }
+
+    .avatar-glow {
+      position: absolute;
+      inset: -8px;
+      background: radial-gradient(circle, rgba(0, 212, 170, 0.22) 0%, transparent 70%);
+      border-radius: 50%;
+      animation: avatarPulse 3s ease-in-out infinite;
+    }
+
+    @keyframes avatarPulse {
+      0%, 100% { transform: scale(1); opacity: 0.5; }
+      50% { transform: scale(1.1); opacity: 1; }
+    }
+
+    .profile-avatar {
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      border: 4px solid var(--primary);
+      box-shadow: 0 0 40px rgba(0, 212, 170, 0.45);
+      transition: all 0.4s ease;
+      position: relative;
+      z-index: 1;
+    }
+
+    .profile-avatar:hover {
+      transform: scale(1.12);
+      box-shadow: 0 0 60px rgba(0, 212, 170, 0.65);
+    }
+
+    .profile-name {
+      color: var(--primary);
+      font-size: 36px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      letter-spacing: -1px;
+    }
+
+    .profile-title {
+      color: #9aa4b2;
+      font-size: 18px;
+      font-weight: 500;
+      margin-bottom: 12px;
+    }
+
+    .expertise-container {
+      width: 100%;
+      margin-bottom: 24px;
+    }
+
+    .expertise-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .expertise-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .expertise-tag {
+      background: rgba(0, 212, 170, 0.06);
+      border: 1px solid rgba(0, 212, 170, 0.14);
+      color: var(--primary);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+
+    .expertise-tag:hover {
+      background: rgba(0, 212, 170, 0.12);
+      border-color: var(--primary);
+      transform: translateY(-2px);
+    }
+
+    .profile-bio {
+      max-width: 100%;
+      color: #c9d1d9;
+      font-size: 16px;
+      line-height: 1.8;
+      background: rgba(0,0,0,0.55);
+      padding: 28px;
+      border-radius: 14px;
+      border-left: 4px solid var(--primary);
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .cta-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .cta-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 14px;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      border: 2px solid;
+    }
+
+    .cta-primary {
+      background: var(--card-bg);
+      color: var(--text-primary);
+      border-color: rgba(255,255,255,0.06);
+    }
+
+    .cta-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+    }
+
+    .cta-secondary {
+      background: rgba(0, 212, 170, 0.06);
+      color: var(--primary);
+      border-color: var(--primary);
+    }
+
+    .cta-secondary:hover {
+      background: rgba(0, 212, 170, 0.12);
+      transform: translateY(-3px);
+      box-shadow: 0 10px 30px rgba(0, 212, 170, 0.12);
+    }
+
+    /* Instagram-themed button that still matches the site's muted aesthetic */
+    .cta-instagram {
+      /* Rounded Instagram-colored outline while keeping button subtle */
+      background: rgba(0,0,0,0.02);
+      color: var(--text-primary);
+      border: 2px solid transparent;
+      border-radius: 10px;
+      padding: 12px 24px;
+      /* two-layer background: inner subtle background, outer gradient used as border */
+      background-image: linear-gradient(rgba(0,0,0,0.02), rgba(0,0,0,0.02)),
+                        linear-gradient(45deg, #f58529, #dd2a7b, #8134af);
+      background-origin: padding-box, border-box;
+      background-clip: padding-box, border-box;
+      box-shadow: none;
+    }
+
+    .cta-instagram:hover {
+      background: rgba(129,52,175,0.06);
+      transform: translateY(-3px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    }
+
+    /* Timeline */
+    .timeline {
+      max-width: 1000px; margin: 0 auto;
+      position: relative; padding: 40px 0;
+    }
+
+    .timeline::before {
+      content: ''; position: absolute;
+      left: 24px; top: 0; bottom: 0;
+      width: 2px; background: var(--border);
+    }
+
+    .timeline-item {
+      position: relative; margin-bottom: 48px;
+      padding-left: 72px; min-height: 80px;
+    }
+
+    .timeline-dot {
+      position: absolute; left: 16px; top: 8px;
+      width: 12px; height: 12px; background: var(--primary);
+      border-radius: 50%; border: 2px solid var(--bg-dark);
+    }
+
+    .timeline-date {
+      font-size: 0.9rem; font-weight: 500;
+      color: var(--primary); margin-bottom: 8px;
+    }
+
+    .timeline-content {
+      background: rgba(20,20,30,0.96);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 26px; backdrop-filter: blur(12px);
+    }
+
+    /* Projects - MOBILE FRIENDLY */
+    .projects-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 28px; margin-top: 20px;
+    }
+
+    .project-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 44px;
+      min-height: 220px;
+      cursor: pointer; transition: transform 0.25s ease, box-shadow 0.25s ease;
+      position: relative; overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    }
+
+    .project-card:hover, .project-card:active {
+      border-color: rgba(255,255,255,0.12);
+      box-shadow: 0 40px 80px rgba(0,0,0,0.45);
+      transform: translateY(-6px);
+    }
+
+    .project-header {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      margin-bottom: 16px;
+      flex-direction: column; gap: 12px;
+    }
+
+    .project-stats {
+      display: flex; gap: 16px; font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+
+    .stat-item {
+      display: flex; align-items: center; gap: 4px;
+    }
+
+    .project-tech {
+      display: flex; gap: 8px; margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .tech-tag {
+      background: rgba(0, 212, 170, 0.1);
+      color: var(--primary);
+      padding: 6px 12px;
+      border-radius: 16px;
+      font-size: 0.85rem; font-weight: 500;
+    }
+
+    .project-title {
+      font-size: 1.8rem; font-weight: 700;
+      color: var(--text-primary); margin-bottom: 14px;
+    }
+
+    .project-desc {
+      color: var(--text-secondary); font-size: 1rem;
+      line-height: 1.6; margin-bottom: 20px;
+    }
+
+    .project-link {
+      display: inline-flex; align-items: center; gap: 8px;
+      color: var(--primary); text-decoration: none;
+      font-weight: 500; font-size: 0.95rem;
+    }
+
+    /* Contact */
+    .contact {
+      text-align: center; max-width: 500px;
+      margin: 0 auto; padding: 60px 0;
+    }
+
+    .contact h1 {
+      font-size: 2.4rem; font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 24px;
+    }
+
+    .contact-subtitle {
+      color: var(--text-secondary);
+      font-size: 1.1rem; margin-bottom: 40px;
+      line-height: 1.6;
+    }
+
+    .contact-links {
+      display: flex; gap: 16px; justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .contact-link {
+      display: flex; align-items: center; gap: 8px;
+      color: var(--text-primary); text-decoration: none;
+      padding: 14px 24px; border: 1px solid var(--border);
+      border-radius: 8px; font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .contact-link:hover {
+      border-color: var(--primary); color: var(--primary);
+      background: rgba(0, 212, 170, 0.08);
+    }
+
+    /* Loading states */
+    .projects-grid .loading, .projects-grid .error {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 80px 20px;
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+    }
+
+    @keyframes spin { 
+      from { transform: rotate(0deg); } 
+      to { transform: rotate(360deg); } 
+    }
+
+    /* MOBILE RESPONSIVE - BREATHING ROOM */
+    @media (max-width: 768px) {
+      .nav-container { display: none; }
+      .mobile-nav { display: block; }
+      
+      .main-content { 
+        padding: 100px 16px 140px; /* More padding for safe area */
+      }
+      
+      .section-header {
+        font-size: 1.8rem;
+        text-align: center;
+        flex-direction: column;
+        gap: 12px;
+      }
+      
+      .section-header i {
+        font-size: 2rem;
+      }
+      
+      .terminal {
+        width: 96%;
+        left: 2%;
+        transform: none;
+        border-radius: 20px;
+        padding: 20px;
+      }
+      
+      .terminal-toggle {
+        bottom: 20px; right: 20px;
+        width: 52px; height: 52px;
+      }
+      
+      .profile-avatar {
+        width: 120px; height: 120px;
+      }
+      
+      .profile-name {
+        font-size: 28px;
+      }
+      
+      .projects-grid {
+        gap: 20px;
+        padding: 0 4px;
+      }
+      
+      .project-card {
+        padding: 24px 20px;
+        margin: 0 4px;
+      }
+      
+      .contact h1 {
+        font-size: 2rem;
+      }
+      
+      .cta-buttons {
+        flex-direction: column;
+        align-items: center;
+      }
+      
+      .cta-btn {
+        width: 100%; max-width: 280px;
+        justify-content: center;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .main-content {
+        padding: 120px 12px 160px;
+      }
+      
+      .project-card {
+        padding: 20px 16px;
+        margin: 0 2px;
+      }
+      
+      .project-title {
+        font-size: 1.2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+
+  <!-- Desktop Navigation -->
+  <div class="nav-container">
+    <div class="nav-btn active" data-section="achievements" title="Portfolio"><i class="fas fa-user"></i></div>
+    <div class="nav-btn" data-section="projects" title="Projects"><i class="fas fa-code"></i></div>
+    <div class="nav-btn" data-section="timeline" title="Journey"><i class="fas fa-road"></i></div>
+    <div class="nav-btn" data-section="contact" title="Contact"><i class="fas fa-envelope"></i></div>
+  </div>
+
+  <!-- Mobile Hamburger Menu -->
+  <div class="mobile-nav" id="mobileNav">
+    <div class="hamburger-icon">
+      <div class="hamburger-line"></div>
+      <div class="hamburger-line"></div>
+      <div class="hamburger-line"></div>
+    </div>
+  </div>  
+  <div class="nav-menu" id="navMenu">
+    <div class="menu-item active" data-section="achievements">
+      <i class="fas fa-user"></i> Portfolio
+    </div>
+    <div class="menu-item" data-section="projects">
+      <i class="fab fa-github"></i> Projects
+    </div>
+        <div class="menu-item" data-section="timeline">
+      <i class="fas fa-road"></i> Journey
+    </div>
+        <div class="menu-item" data-section="contact">
+      <i class="fas fa-envelope"></i> Contact
+    </div>
+  </div>
+
+  <div class="main-content">
+    <!-- Achievements Section -->
+    <section id="achievements" class="section active">
+      <div class="section-header">
+        <i class="fas fa-user"></i>
+        <span>Portfolio</span>
+      </div>
+      
+      <div class="github-profile">
+        <div class="profile-main">
+          <div class="avatar-container">
+            <img src="https://avatars.githubusercontent.com/u/70964202?v=4" alt="zer0condition" class="profile-avatar">
+            <div class="avatar-glow"></div>
+          </div>
+          <div>
+            <div class="profile-name">wezo </div>
+            <div class="profile-title">zer0condition</div>
+          </div>
+          
+          <div class="expertise-container">
+            <div class="expertise-title">Interested In</div>
+            <div class="expertise-tags">
+              <span class="expertise-tag">Windows/Linux Kernel Exploitation</span>
+              <span class="expertise-tag">Hypervisor Research</span>
+              <span class="expertise-tag">Reverse Engineering</span>
+              <span class="expertise-tag">x86_x64 Architecture</span>
+              <span class="expertise-tag">Music Production</span>
+            </div>
+          </div>
+          
+          <div class="profile-bio">
+            <p>Hello! I am a 19 year-old systems researcher mainly focused on kernel internals, hypervisors, CPUs and security module architectures.</p> <br>
+            <p>This is a one-file portfolio page to highlight some of my work and journey! Feel free to explore and reach out if you'd like to connect!</p> <br>
+            <p>P.S. I also like to dress and mess around with digital music production in my free time:) </p>
+          </div>
+          
+          <div class="cta-buttons">
+            <a href="https://github.com/zer0condition" target="_blank" class="cta-btn cta-primary">
+              <i class="fab fa-github"></i> GitHub
+            </a>
+            <a href="https://soundcloud.com/wezo-417623843" target="_blank" class="cta-btn cta-secondary">
+              <i class="fab fa-soundcloud"></i> SoundCloud
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Journey -->
+    <section id="timeline" class="section">
+      <div class="section-header">
+        <i class="fas fa-road"></i>
+        <span>Research Journey</span>
+      </div>
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="timeline-dot"></div>
+          <div class="timeline-content">
+            <div class="timeline-date">2015 - The Beginning of Everything.</div>
+            <p>Was always into computers since childhood. Assembled my first computer from components at the age of 9.</p>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot"></div>
+          <div class="timeline-content">
+            <div class="timeline-date">2015-2019 - Figuring things out.</div>
+            <p>Games were fun, but was more interested in messing around with Operating System installations and drive paritions; Moved around Windows 7, 8 and XP for fun every week.</p>
+            <p>Fixed up neighbourhood computers and father's office computers when they broke.</p>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot"></div>
+          <div class="timeline-content">
+            <div class="timeline-date">2020 - The Rabbit Hole.</div>
+            <p> Lockdown started because of the pandemic, had nothing to do and started exploring low-level languages like C/C++/Asm and self taught myself how virtual memory worked.</p>
+          </div>
+        </div>
+
+        <div class="timeline-item">
+          <div class="timeline-dot"></div>
+          <div class="timeline-content">
+            <div class="timeline-date">2021-2023 - Windows Kernel Development</div>
+            <p>Deep dive into Windows kernel internals. Started messing around with the with kernel and had the motivation to exploit it.</p>
+            <p>Built own tooling and researched components of renowned anti-cheats, anti-malware, EDRs, XDRs and other security products.</p>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot"></div>
+          <div class="timeline-content">
+            <div class="timeline-date">2024-2025 (Present) - Hypervisor & CPU Research and finding a new interest.</div>
+            <p>Developed interest in hypervisors and emulation with precise control in general, spent most of my time reading up articles and information about CPU and Security module architecture; P.S.</p>
+             <p>Found a new interest in music.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Projects -->
+    <section id="projects" class="section">
+      <div class="section-header">
+        <i class="fab fa-github"></i>
+        <span>Popular Projects</span>
+      </div>
+      <div class="projects-grid">
+        <!-- Live data loads here automatically -->
+      </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="section">
+      <div class="contact">
+        <h1>wezo@zer0condition</h1>
+        <div class="contact-subtitle">
+          Location: Somewhere in Asia.<br>
+        </div>
+        <div class="contact-links">
+          <a class="contact-link" href="https://discord.com/users/164431138507456512">
+            <i class="fab fa-discord"></i> Discord
+          </a>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Terminal Toggle Button -->
+  <div class="terminal-toggle" id="terminalToggle" title="Toggle Terminal">
+    <i class="fas fa-terminal"></i>
+  </div>
+
+  <!-- Terminal -->
+  <div class="terminal" id="terminal">
+    <div class="terminal-header">
+      <div class="terminal-title">
+        <i class="fas fa-terminal"></i> zer0condition@research:~$
+      </div>
+      <button class="terminal-close" id="terminalClose">&times;</button>
+    </div>
+    <div class="terminal-content" id="terminalOutput"></div>
+    <div class="terminal-input-container">
+      <span class="prompt">zer0condition@research:~$</span>
+      <input id="terminalInput" placeholder="type 'help' for commands..." autofocus>
+    </div>
+  </div>
+
+  <script>
+    let currentSection = 'achievements';
+    let terminalActive = false;
+
+    function closeMenu() {
+      const navMenu = document.getElementById('navMenu');
+      const mobileNav = document.getElementById('mobileNav');
+      navMenu.classList.remove('active');
+      mobileNav.classList.remove('active');
+    }
+
+    function showSection(id) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.section === id) btn.classList.add('active');
+      });
+      
+      document.querySelectorAll('.menu-item').forEach(item => {
+        item.classList.remove('active');
+        if (item.dataset.section === id) item.classList.add('active');
+      });
+      
+      currentSection = id;
+      if (terminalActive) addTerminalLine(`> navigating to: ${id}`);
+      
+      closeMenu();
+    }
+
+    // Terminal Toggle
+    document.getElementById('terminalToggle').addEventListener('click', () => {
+      terminalActive = !terminalActive;
+      const terminal = document.getElementById('terminal');
+      const toggleIcon = document.getElementById('terminalToggle');
+      
+      if (terminalActive) {
+        terminal.classList.add('active');
+        toggleIcon.innerHTML = '<i class="fas fa-chevron-up"></i>';
+        addTerminalLine('zer0condition@research:~$ terminal online. type "help"');
+        document.getElementById('terminalInput').focus();
+      } else {
+        terminal.classList.remove('active');
+        toggleIcon.innerHTML = '<i class="fas fa-terminal"></i>';
+      }
+    });
+
+    document.getElementById('terminalClose').addEventListener('click', () => {
+      terminalActive = false;
+      document.getElementById('terminal').classList.remove('active');
+      document.getElementById('terminalToggle').innerHTML = '<i class="fas fa-terminal"></i>';
+    });
+
+    // Mobile Navigation
+    document.getElementById('mobileNav').addEventListener('click', () => {
+      document.getElementById('navMenu').classList.toggle('active');
+      document.getElementById('mobileNav').classList.toggle('active');
+    });
+
+    document.querySelectorAll('.menu-item, .nav-btn').forEach(item => {
+      item.addEventListener('click', () => {
+        const section = item.dataset.section;
+        if (section) showSection(section);
+      });
+    });
+
+    // Terminal Commands
+    const terminalOutput = document.getElementById('terminalOutput');
+    function addTerminalLine(text, type = '') {
+      const div = document.createElement('div');
+      div.textContent = text;
+      if (type === 'success') div.className = 'success';
+      if (type === 'error') div.className = 'error';
+      terminalOutput.appendChild(div);
+      terminalOutput.scrollTop = terminalOutput.scrollHeight;
+      if (terminalOutput.children.length > 50) {
+        terminalOutput.removeChild(terminalOutput.firstChild);
+      }
+    }
+
+    const commands = {
+      'help': 'Available commands:\n  achievements | contact | repos | stats | clear | exit',
+      'achievements': () => showSection('achievements'),
+      'contact': () => showSection('contact'),
+      'repos': () => showSection('projects'),
+      'stats': 'GitHub Stats:\n  Live data loading... check projects tab!',
+      'clear': () => { terminalOutput.innerHTML = ''; return ''; },
+      'exit': () => {
+        terminalActive = false;
+        document.getElementById('terminal').classList.remove('active');
+        document.getElementById('terminalToggle').innerHTML = '<i class="fas fa-terminal"></i>';
+        return 'goodbye';
+      }
+    };
+
+    document.getElementById('terminalInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && terminalActive) {
+        const input = document.getElementById('terminalInput');
+        const cmd = input.value.trim().toLowerCase();
+        
+        if (cmd) {
+          addTerminalLine(`zer0condition@research:~$ ${cmd}`);
+          
+          if (commands[cmd]) {
+            const result = typeof commands[cmd] === 'function' ? commands[cmd]() : commands[cmd];
+            if (result !== '') addTerminalLine(result, 'success');
+          } else {
+            addTerminalLine(`command not found: ${cmd}\n type "help" for available commands`, 'error');
+          }
+        }
+        
+        input.value = '';
+        input.focus();
+      } else if (e.key === 'Escape') {
+        document.getElementById('terminalInput').blur();
+      }
+    });
+
+    // Background Animation
+    function initBackground() {
+      const canvas = document.getElementById('canvas');
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+      const renderer = new THREE.WebGLRenderer({ canvas, alpha: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+
+      const geometry = new THREE.BufferGeometry();
+      const vertices = new Float32Array(2000 * 3);
+      for (let i = 0; i < 2000 * 3; i += 3) {
+        vertices[i] = (Math.random() - 0.5) * 1000;
+        vertices[i + 1] = (Math.random() - 0.5) * 1000;
+        vertices[i + 2] = (Math.random() - 0.5) * 1000;
+      }
+      geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+
+      const material = new THREE.PointsMaterial({ 
+        color: 0x00d4aa, size: 2, transparent: true, opacity: 0.4 
+      });
+      const points = new THREE.Points(geometry, material);
+      scene.add(points);
+
+      camera.position.z = 150;
+
+      function animate() {
+        requestAnimationFrame(animate);
+        points.rotation.x += 0.0002;
+        points.rotation.y += 0.0003;
+        renderer.render(scene, camera);
+      }
+      animate();
+
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+    }
+
+    const repoDetails = [
+      { name: 'ReverseKit', desc: 'x64 Dynamic Reverse Engineering Toolkit. System call interception, thread monitoring, heap analysis, debugger bypass, and more.', tech: ['C++', 'Reverse Engineering', 'Runtime Analysis'] },
+      { name: 'mhydeath', desc: 'Abusing mhyprotect to kill AVs/EDRs/XDRs/Protected Processes. Anti-Malware bypass research.', tech: ['C++', 'mhyprotect', 'EDR Bypass'] },
+      { name: 'GDRVLoader', desc: 'Unsigned driver loader using CVE-2018-19320. Bypasses Windows Driver Signature Enforcement.', tech: ['C', 'CVE-2018-19320', 'Kernel Driver'] },
+      { name: 'Shadow-Regions-Bypass', desc: 'External base for bypassing Shadow Regions in Valorant. Anti-Cheat technology research.', tech: ['C++', 'Anti-Cheat', 'Valorant'] },
+      { name: 'NVDrv', desc: 'Abusing NVIDIA driver for physical/virtual memory and control register manipulation.', tech: ['C++', 'NVIDIA', 'Memory Manipulation'] },
+      { name: 'ZeroHVCI', desc: 'Arbitrary kernel read/write/function calling in HVCI environments without admin/kernel drivers.', tech: ['HVCI', 'Kernel R/W', 'Hypervisor'] }
+    ];
+
+    const fallbackStats = {
+      'ReverseKit': { stars: 722, forks: 104 },
+      'mhydeath': { stars: 406, forks: 72 },
+      'GDRVLoader': { stars: 319, forks: 79 },
+      'Shadow-Regions-Bypass': { stars: 301, forks: 95 },
+      'NVDrv': { stars: 274, forks: 71 },
+      'ZeroHVCI': { stars: 150, forks: 42 }
+    };
+
+    async function autoUpdateReposJSON() {
+      const projectsGrid = document.querySelector('#projects .projects-grid');
+      const totalStarsEl = document.getElementById('totalStars');
+      if (!projectsGrid) return;
+      
+      projectsGrid.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Updating stats...</div>';
+      
+      renderProjects(repoDetails.map(r => ({
+        ...r, 
+        stars: fallbackStats[r.name]?.stars || '★★', 
+        forks: fallbackStats[r.name]?.forks || '★★',
+        url: `https://github.com/zer0condition/${r.name}`
+      })));
+      
+      const jsonData = { 
+        lastUpdated: new Date().toISOString().split('T')[0], 
+        repos: [], 
+        totalStars: 0 
+      };
+      const displayRepos = [];
+      
+      let apiSuccessCount = 0;
+      
+      for (let i = 0; i < repoDetails.length; i++) {
+        const repo = repoDetails[i];
+        await new Promise(r => setTimeout(r, i * 400));
+        
+        try {
+          const response = await fetch(`https://api.github.com/repos/zer0condition/${repo.name}`, {
+            headers: { 'User-Agent': 'portfolio-auto-updater' }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            const repoStats = {
+              name: repo.name,
+              stars: data.stargazers_count,
+              forks: data.forks_count
+            };
+            jsonData.repos.push(repoStats);
+            jsonData.totalStars += data.stargazers_count;
+            
+            displayRepos.push({
+              ...repo,
+              stars: data.stargazers_count,
+              forks: data.forks_count,
+              url: data.html_url
+            });
+            apiSuccessCount++;
+            console.log(`${repo.name}: ${data.stargazers_count} ${data.forks_count}🍴`);
+          } else {
+            // API failed → Use fallback
+            const fallback = fallbackStats[repo.name];
+            jsonData.repos.push({ name: repo.name, stars: fallback.stars, forks: fallback.forks });
+            jsonData.totalStars += fallback.stars;
+            
+            displayRepos.push({
+              ...repo,
+              stars: fallback.stars,
+              forks: fallback.forks,
+              url: `https://github.com/zer0condition/${repo.name}`
+            });
+            
+            console.log(`${repo.name}: ${fallback.stars} ${fallback.forks}🍴 (fallback)`);
+          }
+        } catch (e) {
+          const fallback = fallbackStats[repo.name];
+          jsonData.repos.push({ name: repo.name, stars: fallback.stars, forks: fallback.forks });
+          jsonData.totalStars += fallback.stars;
+          
+          displayRepos.push({
+            ...repo,
+            stars: fallback.stars,
+            forks: fallback.forks,
+            url: `https://github.com/zer0condition/${repo.name}`
+          });
+          
+          console.log(`${repo.name}: ${fallback.stars} ${fallback.forks}🍴 (fallback)`);
+        }
+      }
+      
+      renderProjects(displayRepos);
+      
+      if (totalStarsEl) {
+        totalStarsEl.textContent = jsonData.totalStars.toLocaleString();
+      }
+      
+      const jsonString = JSON.stringify(jsonData, null, 2);
+      navigator.clipboard.writeText(jsonString).then(() => {
+        console.log('%c JSON AUTO-COPIED TO CLIPBOARD! (Even with 403s)', 'color: #00d4aa; font-size: 16px; font-weight: bold');
+        console.log('%c Paste into repos.json:', 'color: #f59e0b; font-weight: bold');
+        console.log(jsonString);
+        
+        if (window.addTerminalLine) {
+          addTerminalLine(`Updated! ${jsonData.totalStars.toLocaleString()} total | JSON copied! (${apiSuccessCount}/${repoDetails.length} live)`, 'success');
+        }
+      });
+    }
+
+    function renderProjects(repos) {
+      const projectsGrid = document.querySelector('#projects .projects-grid');
+      if (!projectsGrid) return;
+      
+      projectsGrid.innerHTML = repos.map(repo => `
+        <div class="project-card" onclick="window.open('${repo.url}','_blank')">
+          <div class="project-header">
+            <div>
+              <div class="project-title">${repo.name}</div>
+              <div class="project-tech">
+                ${repo.tech.map(tag => `<span class="tech-tag">${tag}</span>`).join('')}
+              </div>
+            </div>
+            <div class="project-stats">
+              <div class="stat-item"><i class="fas fa-star"></i> ${repo.stars}</div>
+              <div class="stat-item"><i class="fas fa-code-branch"></i> ${repo.forks}</div>
+            </div>
+          </div>
+          <div class="project-desc">${repo.desc}</div>
+          <a href="${repo.url}" target="_blank" class="project-link">
+            <i class="fab fa-github"></i> View on GitHub →
+          </a>
+        </div>
+      `).join('');
+    }
+
+    document.addEventListener('DOMContentLoaded', autoUpdateReposJSON);
+
+    initBackground();
+  </script>
+</body>
+</html>
