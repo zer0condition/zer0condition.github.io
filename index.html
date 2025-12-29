@@ -48,6 +48,144 @@
       z-index: 100;
     }
 
+
+      /* Loading Screen */
+  #loader {
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-primary);
+    pointer-events: auto;
+    transition: opacity 0.5s ease, visibility 0.5s ease;
+  }
+
+  #loader.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .loader-backdrop {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at top left, rgba(0, 212, 170, 0.18), transparent 55%),
+      radial-gradient(circle at bottom right, rgba(99, 102, 241, 0.22), transparent 60%),
+      #020410;
+    opacity: 0.96;
+  }
+
+  .loader-core {
+    position: relative;
+    z-index: 1;
+    width: min(520px, 90vw);
+    padding: 32px 28px 26px;
+    border-radius: 18px;
+    border: 1px solid var(--border);
+    background: radial-gradient(circle at top left, rgba(0, 212, 170, 0.08), transparent 60%),
+                radial-gradient(circle at bottom right, rgba(99, 102, 241, 0.08), transparent 60%),
+                rgba(10,10,20,0.96);
+    box-shadow: 0 28px 80px rgba(0,0,0,0.75);
+    backdrop-filter: blur(24px);
+  }
+
+  .loader-logo {
+    font-size: 1.8rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--primary);
+    margin-bottom: 6px;
+  }
+
+  .loader-pulse {
+    display: inline-block;
+    animation: loaderCursor 0.9s steps(2, start) infinite;
+  }
+
+  @keyframes loaderCursor {
+    0%, 50% { opacity: 1; }
+    50.01%, 100% { opacity: 0; }
+  }
+
+  .loader-subtitle {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 18px;
+  }
+
+  .loader-terminal {
+    font-size: 0.8rem;
+    background: rgba(0,0,0,0.55);
+    border-radius: 10px;
+    padding: 12px 14px;
+    border-left: 3px solid var(--primary);
+    border-right: 1px solid rgba(255,255,255,0.04);
+    border-top: 1px solid rgba(255,255,255,0.02);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    box-shadow: inset 0 0 18px rgba(0,0,0,0.65);
+    margin-bottom: 20px;
+    max-height: 140px;
+    overflow: hidden;
+  }
+
+  .loader-line {
+    opacity: 0.15;
+    transform: translateY(4px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .loader-line.active {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .loader-progress {
+    position: relative;
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(148,163,184,0.12);
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
+
+  .loader-progress-bar {
+    position: absolute;
+    inset: 0;
+    width: 0%;
+    background: linear-gradient(90deg, var(--primary), var(--secondary), var(--accent));
+    box-shadow: 0 0 20px rgba(0,212,170,0.6);
+    transition: width 0.25s ease-out;
+  }
+
+  .loader-footer {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    text-align: right;
+    opacity: 0.7;
+  }
+
+  @media (max-width: 480px) {
+    .loader-core {
+      padding: 26px 20px 22px;
+    }
+    .loader-logo {
+      font-size: 1.5rem;
+    }
+    .loader-terminal {
+      font-size: 0.75rem;
+      max-height: 120px;
+    }
+  }
+
+
     .nav-btn {
       width: 48px; height: 48px;
       border: 1px solid var(--border);
@@ -686,6 +824,31 @@
   </style>
 </head>
 <body>
+  <!-- Loading Screen -->
+  <div id="loader">
+    <div class="loader-backdrop"></div>
+    <div class="loader-core">
+      <div class="loader-logo">wezo<span class="loader-pulse">_</span></div>
+      <div class="loader-subtitle">booting up...</div>
+
+      <div class="loader-terminal">
+        <div class="loader-line">[0x0000] initializing corny space background</div>
+        <div class="loader-line">[0x0001] i love fortnite</div>
+        <div class="loader-line">[0x0002] i love games</div>
+        <div class="loader-line">[0x0003] hmmmm</div>
+        <div class="loader-line">[0x0004] cheesecake</div>
+      </div>
+
+      <div class="loader-progress">
+        <div class="loader-progress-bar"></div>
+      </div>
+
+      <div class="loader-footer">press any key to skip</div>
+    </div>
+  </div>
+
+
+
   <canvas id="canvas"></canvas>
 
   <!-- Desktop Navigation -->
@@ -1168,6 +1331,55 @@
     document.addEventListener('DOMContentLoaded', autoUpdateReposJSON);
 
     initBackground();
+
+      // Loader logic
+  (function () {
+    const loader = document.getElementById('loader');
+    if (!loader) return;
+
+    const lines = Array.from(loader.querySelectorAll('.loader-line'));
+    const bar = loader.querySelector('.loader-progress-bar');
+
+    let idx = 0;
+    let progress = 0;
+    const step = 100 / (lines.length + 2);
+    const minShowTime = 1100;   // ms minimum
+    const maxShowTime = 2200;   // hard cap
+    const startTime = performance.now();
+
+    function activateNextLine() {
+      if (idx < lines.length) {
+        lines[idx].classList.add('active');
+        idx++;
+        progress = Math.min(100, progress + step);
+        if (bar) bar.style.width = progress + '%';
+      }
+    }
+
+    const lineTimer = setInterval(() => {
+      activateNextLine();
+      if (idx >= lines.length) clearInterval(lineTimer);
+    }, 210);
+
+    function finishLoader() {
+      const elapsed = performance.now() - startTime;
+      const remaining = Math.max(minShowTime - elapsed, 0);
+      setTimeout(() => {
+        if (bar) bar.style.width = '100%';
+        setTimeout(() => {
+          loader.classList.add('hidden');
+        }, 260);
+      }, remaining);
+    }
+
+    // Failsafe hard cap
+    setTimeout(finishLoader, maxShowTime);
+
+    // Allow user to skip
+    window.addEventListener('keydown', finishLoader, { once: true });
+    window.addEventListener('click', finishLoader, { once: true });
+  })();
+
   </script>
 </body>
 </html>
