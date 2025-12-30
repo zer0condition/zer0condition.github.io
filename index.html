@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <title>wezo!</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" href="https://avatars.githubusercontent.com/u/70964202?v=4">
+  <link rel="apple-touch-icon" href="https://avatars.githubusercontent.com/u/70964202?v=4">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <style>
@@ -17,8 +19,8 @@
       --accent: #f59e0b;
       --danger: #ef4444;
       --bg-dark: #0a0a14;
-      --card-bg: rgba(18, 18, 28, 0.92);
-      --border: rgba(255,255,255,0.08);
+      --card-bg: rgba(18, 18, 28, 0.06); /* much more translucent */
+      --border: rgba(255,255,255,0.02);
       --text-primary: #e2e8f0;
       --text-secondary: #94a3b8;
     }
@@ -29,6 +31,32 @@
       font-family: 'JetBrains Mono', monospace;
       line-height: 1.6;
       overflow-x: hidden;
+    }
+
+    /* Smooth entrance animations */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes slideInLeft {
+      from { opacity: 0; transform: translateX(-30px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes slideInRight {
+      from { opacity: 0; transform: translateX(30px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes scaleIn {
+      from { opacity: 0; transform: scale(0.9); }
+      to { opacity: 1; transform: scale(1); }
     }
 
     #canvas {
@@ -46,6 +74,7 @@
       display: flex; flex-direction: column;
       gap: 16px;
       z-index: 100;
+      animation: slideInLeft 0.5s ease 0.1s both;
     }
 
 
@@ -73,10 +102,12 @@
     position: absolute;
     inset: 0;
     background:
-      radial-gradient(circle at top left, rgba(0, 212, 170, 0.18), transparent 55%),
-      radial-gradient(circle at bottom right, rgba(99, 102, 241, 0.22), transparent 60%),
-      #020410;
-    opacity: 0.96;
+      radial-gradient(circle at 8% 12%, rgba(0,212,170,0.14), transparent 36%),
+      radial-gradient(circle at 88% 86%, rgba(99,102,241,0.10), transparent 44%),
+      linear-gradient(180deg, rgba(6,7,13,0.96), rgba(4,5,10,0.94));
+    opacity: 0.99;
+    will-change: background-position;
+    animation: backdropShift 18s linear infinite;
   }
 
   .loader-core {
@@ -85,12 +116,12 @@
     width: min(520px, 90vw);
     padding: 32px 28px 26px;
     border-radius: 18px;
-    border: 1px solid var(--border);
-    background: radial-gradient(circle at top left, rgba(0, 212, 170, 0.08), transparent 60%),
-                radial-gradient(circle at bottom right, rgba(99, 102, 241, 0.08), transparent 60%),
-                rgba(10,10,20,0.96);
-    box-shadow: 0 28px 80px rgba(0,0,0,0.75);
-    backdrop-filter: blur(24px);
+    border: 1px solid rgba(255,255,255,0.03);
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.008)), var(--card-bg);
+    box-shadow: 0 28px 72px rgba(0,0,0,0.6), 0 6px 28px rgba(0,212,170,0.04) inset;
+    backdrop-filter: blur(20px) saturate(110%);
+    transform-origin: center;
+    animation: loaderCorePulse 6s ease-in-out infinite;
   }
 
   .loader-logo {
@@ -119,27 +150,26 @@
   }
 
   .loader-terminal {
-    font-size: 0.8rem;
-    background: rgba(0,0,0,0.55);
-    border-radius: 10px;
+    font-size: 0.82rem;
+    background: linear-gradient(180deg, rgba(2,4,8,0.6), rgba(2,4,8,0.48));
+    border-radius: 12px;
     padding: 12px 14px;
-    border-left: 3px solid var(--primary);
-    border-right: 1px solid rgba(255,255,255,0.04);
-    border-top: 1px solid rgba(255,255,255,0.02);
-    border-bottom: 1px solid rgba(255,255,255,0.08);
-    box-shadow: inset 0 0 18px rgba(0,0,0,0.65);
-    margin-bottom: 20px;
-    max-height: 140px;
+    border-left: 3px solid rgba(0,212,170,0.9);
+    border-right: 1px solid rgba(255,255,255,0.03);
+    box-shadow: inset 0 6px 22px rgba(0,0,0,0.55);
+    margin-bottom: 18px;
+    max-height: 160px;
     overflow: hidden;
   }
 
   .loader-line {
     opacity: 0.15;
-    transform: translateY(4px);
-    transition: opacity 0.3s ease, transform 0.3s ease;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    transform: translateY(6px);
+    transition: opacity 0.32s ease, transform 0.32s ease;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    display: block;
   }
 
   .loader-line.active {
@@ -160,9 +190,16 @@
     position: absolute;
     inset: 0;
     width: 0%;
-    background: linear-gradient(90deg, var(--primary), var(--secondary), var(--accent));
-    box-shadow: 0 0 20px rgba(0,212,170,0.6);
-    transition: width 0.25s ease-out;
+    background: linear-gradient(90deg, rgba(0,212,170,0.95), rgba(99,102,241,0.9), rgba(245,158,11,0.85));
+    background-size: 200% 100%;
+    box-shadow: 0 0 28px rgba(0,212,170,0.24), 0 0 60px rgba(99,102,241,0.08);
+    transition: width 0.4s cubic-bezier(.2,.9,.2,.95), box-shadow 0.3s;
+    animation: progressShimmer 3.6s linear infinite;
+  }
+
+  @keyframes progressShimmer {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 200% 50%; }
   }
 
   .loader-footer {
@@ -174,16 +211,45 @@
 
   @media (max-width: 480px) {
     .loader-core {
-      padding: 26px 20px 22px;
+      width: calc(96vw);
+      padding: 18px 14px 16px;
+      border-radius: 12px;
     }
-    .loader-logo {
-      font-size: 1.5rem;
-    }
+    .loader-logo { font-size: 1.25rem; }
+    .loader-subtitle { font-size: 0.8rem; }
     .loader-terminal {
-      font-size: 0.75rem;
-      max-height: 120px;
+      font-size: 0.78rem;
+      max-height: 160px;
+      padding: 10px 12px;
+      border-radius: 10px;
     }
+    .loader-line { font-size: 0.85rem; line-height:1.25rem; }
+    .loader-progress { height: 6px; margin-bottom: 12px; }
   }
+
+  @keyframes loaderCorePulse {
+    0% { transform: scale(1); box-shadow: 0 28px 72px rgba(0,0,0,0.6), 0 6px 28px rgba(0,212,170,0.04) inset; }
+    45% { transform: scale(1.01); box-shadow: 0 36px 92px rgba(0,0,0,0.64), 0 12px 40px rgba(0,212,170,0.06) inset; }
+    55% { transform: scale(1.007); box-shadow: 0 34px 84px rgba(0,0,0,0.62), 0 10px 36px rgba(0,212,170,0.05) inset; }
+    100% { transform: scale(1); box-shadow: 0 28px 72px rgba(0,0,0,0.6), 0 6px 28px rgba(0,212,170,0.04) inset; }
+  }
+
+  @keyframes backdropShift {
+    0% { background-position: 0% 0%, 0% 0%, 0% 0%; }
+    50% { background-position: 20% 10%, 80% 90%, 0% 0%; }
+    100% { background-position: 0% 0%, 0% 0%, 0% 0%; }
+  }
+
+  @media (max-width: 768px) {
+    .loader-core { width: min(560px, 92vw); padding: 22px 18px 20px; }
+    .loader-line { font-size: 0.92rem; }
+    .loader-logo { font-size: 1.4rem; }
+  }
+
+  /* loader info lines: uniform styling */
+  .loader-terminal .loader-line { color: var(--text-secondary); }
+
+  .loader-terminal { overflow-y: auto; }
 
 
     .nav-btn {
@@ -194,6 +260,7 @@
       color: var(--primary); font-size: 0.9rem;
       cursor: pointer; transition: all 0.2s ease;
       background: var(--card-bg);
+      backdrop-filter: blur(8px);
     }
 
     .nav-btn:hover, .nav-btn.active {
@@ -213,9 +280,10 @@
       color: var(--primary); font-size: 1.2rem;
       cursor: pointer; transition: all 0.3s ease;
       background: var(--card-bg);
-      backdrop-filter: blur(20px);
+      backdrop-filter: blur(18px);
       z-index: 250;
       box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      animation: slideInRight 0.5s ease 0.3s both;
     }
 
     .terminal-toggle:hover {
@@ -236,6 +304,161 @@
       padding: 12px;
       cursor: pointer;
       transition: all 0.3s ease;
+    }
+
+    /* Mobile First-Time Hint Popup */
+    .mobile-hint-popup {
+      display: none;
+      position: fixed;
+      top: 62px;
+      right: 12px;
+      z-index: 160;
+      max-width: 200px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(12px);
+      animation: hintPopIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      opacity: 0;
+      transform: translateY(-8px) scale(0.95);
+    }
+
+    .mobile-hint-popup.show {
+      display: block;
+    }
+
+    @keyframes hintPopIn {
+      0% {
+        opacity: 0;
+        transform: translateY(-8px) scale(0.95);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @keyframes hintPopOut {
+      0% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(-8px) scale(0.9);
+      }
+    }
+
+    .mobile-hint-popup.hiding {
+      animation: hintPopOut 0.25s ease forwards;
+    }
+
+    .mobile-hint-popup::before {
+      content: '';
+      position: absolute;
+      top: -6px;
+      right: 22px;
+      width: 12px;
+      height: 12px;
+      background: var(--card-bg);
+      border-left: 1px solid var(--border);
+      border-top: 1px solid var(--border);
+      transform: rotate(45deg);
+    }
+
+    .hint-text {
+      color: var(--text-secondary);
+      font-size: 0.75rem;
+      line-height: 1.4;
+      margin-bottom: 10px;
+    }
+
+    .hint-text strong {
+      color: var(--primary);
+    }
+
+    .hint-dismiss-btn {
+      width: 100%;
+      padding: 6px 12px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-weight: 500;
+      font-size: 0.7rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .hint-dismiss-btn:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: rgba(0, 212, 170, 0.08);
+    }
+
+    .hint-dismiss-btn:active {
+      transform: translateY(0);
+    }
+
+    @media (min-width: 769px) {
+      .mobile-hint-popup {
+        display: none !important;
+      }
+    }
+
+    /* Music hint popup */
+    .music-hint-popup {
+      display: none;
+      position: fixed;
+      bottom: 230px;
+      right: 80px;
+      z-index: 260;
+      max-width: 200px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(12px);
+      animation: hintPopIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      opacity: 0;
+      transform: translateX(10px) scale(0.95);
+    }
+
+    .music-hint-popup.show {
+      display: block;
+    }
+
+    .music-hint-popup.hiding {
+      animation: musicHintPopOut 0.25s ease forwards;
+    }
+
+    @keyframes musicHintPopOut {
+      0% { opacity: 1; transform: translateX(0) scale(1); }
+      100% { opacity: 0; transform: translateX(10px) scale(0.9); }
+    }
+
+    .music-hint-popup::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      right: -6px;
+      transform: translateY(-50%) rotate(45deg);
+      width: 12px;
+      height: 12px;
+      background: var(--card-bg);
+      border-right: 1px solid var(--border);
+      border-top: 1px solid var(--border);
+    }
+
+    @media (max-width: 768px) {
+      .music-hint-popup {
+        bottom: 155px;
+        right: 70px;
+        max-width: 180px;
+      }
     }
 
     .mobile-nav:hover {
@@ -282,6 +505,284 @@
       right: 0;
     }
 
+    /* cursor glow */
+    .cursor-glow {
+      position: fixed; pointer-events: none; z-index: 400;
+      width: 96px; height: 96px; border-radius: 50%;
+      filter: blur(6px);
+      background: radial-gradient(circle, rgba(0,212,170,0.18) 0%, rgba(0,212,170,0.06) 28%, transparent 60%);
+      transform: translate(-50%, -50%) scale(0.6); mix-blend-mode: screen; transition: transform 160ms cubic-bezier(.2,.9,.3,1), opacity 220ms;
+      opacity: 0; will-change: transform, opacity;
+      pointer-events: none;
+    }
+
+    /* game toggle - positioned above terminal on the right (minimal, terminal-like) */
+    .game-toggle {
+      right: 24px; left: auto; bottom: 96px;
+      background: var(--card-bg);
+      color: var(--primary);
+      border: 2px solid var(--border);
+      backdrop-filter: blur(18px);
+      z-index: 260;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.28);
+      transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+      width: 56px; height: 56px; border-radius: 50%; display:flex; align-items:center; justify-content:center;
+    }
+    .game-toggle:hover { transform: scale(1.06); box-shadow: 0 10px 36px rgba(0,0,0,0.32); background: rgba(0,212,170,0.06); }
+
+    /* music toggle - positioned above game toggle */
+    .music-toggle {
+      right: 24px; left: auto; bottom: 166px;
+      background: var(--card-bg);
+      color: var(--primary);
+      border: 2px solid var(--border);
+      backdrop-filter: blur(18px);
+      z-index: 260;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.28);
+      transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+      width: 56px; height: 56px; border-radius: 50%; display:flex; align-items:center; justify-content:center;
+    }
+    .music-toggle:hover { transform: scale(1.06); box-shadow: 0 10px 36px rgba(0,0,0,0.32); background: rgba(0,212,170,0.06); }
+    .music-toggle.playing i { animation: musicIconSpin 2s linear infinite; }
+    .music-toggle.playing { border-color: var(--primary); box-shadow: 0 0 20px rgba(0,212,170,0.3); }
+    @keyframes musicIconSpin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* hide the left-side nav game/music buttons (we'll use the stacked controls instead) */
+    .nav-btn.game-btn, .nav-btn.music-btn { display: none; }
+
+    /* modal for mini-game */
+    .game-modal { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 1000; }
+    .game-modal.active { display: flex; }
+    .game-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.6); }
+    .game-window { position: relative; z-index: 1; width: min(760px, 92vw); max-width: 760px; border-radius: 14px; padding: 18px; background: linear-gradient(180deg, rgba(255,255,255,0.006), rgba(255,255,255,0.003)); backdrop-filter: blur(16px); box-shadow: 0 14px 40px rgba(0,0,0,0.45); }
+    .game-header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+    .game-title { font-weight:700; color:var(--text-primary); }
+    .game-canvas { width:100%; height:420px; background: #000; border-radius:8px; display:block; }
+    .game-controls { display:flex; gap:8px; margin-top:10px; justify-content:space-between; align-items:center; }
+    .btn-small { padding:8px 12px; border-radius:8px; background:var(--card-bg); border:1px solid var(--border); color:var(--text-primary); cursor:pointer; }
+
+    /* Music Player Modal */
+    .music-modal { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 1000; }
+    .music-modal.active { display: flex; }
+    .music-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
+    .music-window { 
+      position: relative; z-index: 1; 
+      width: min(380px, 90vw); 
+      border-radius: 16px; 
+      padding: 24px; 
+      background: rgba(18, 18, 28, 0.06);
+      backdrop-filter: blur(20px) saturate(120%); 
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.03) inset;
+      border: 1px solid rgba(255,255,255,0.04);
+    }
+    .music-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .music-title { font-weight: 600; color: var(--text-primary); font-size: 1rem; display: flex; align-items: center; gap: 8px; }
+    .music-title i { color: var(--primary); }
+    
+    .music-artwork {
+      width: 100%;
+      aspect-ratio: 1;
+      max-width: 180px;
+      margin: 0 auto 20px;
+      border-radius: 12px;
+      background: rgba(0,212,170,0.06);
+      border: 1px solid rgba(255,255,255,0.04);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .music-artwork i {
+      font-size: 3.5rem;
+      color: var(--primary);
+      opacity: 0.5;
+    }
+    .music-artwork.playing i {
+      animation: musicPulse 1s ease-in-out infinite;
+    }
+    @keyframes musicPulse {
+      0%, 100% { transform: scale(1); opacity: 0.5; }
+      50% { transform: scale(1.1); opacity: 0.7; }
+    }
+    
+    .music-info {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    .music-track-name {
+      color: var(--text-primary);
+      font-weight: 600;
+      font-size: 1rem;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .music-track-artist {
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+    }
+    
+    .music-progress {
+      margin-bottom: 16px;
+    }
+    .music-progress-bar {
+      width: 100%;
+      height: 3px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 2px;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+    .music-progress-fill {
+      height: 100%;
+      background: var(--primary);
+      border-radius: 2px;
+      width: 0%;
+      transition: width 0.1s linear;
+    }
+    .music-time {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+      margin-top: 6px;
+      opacity: 0.8;
+    }
+    
+    .music-controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+    .music-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.08);
+      color: var(--text-primary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+    .music-btn:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: rgba(0,212,170,0.06);
+    }
+    .music-btn.play-btn {
+      width: 52px;
+      height: 52px;
+      background: rgba(0,212,170,0.15);
+      border: 1px solid var(--primary);
+      color: var(--primary);
+    }
+    .music-btn.play-btn:hover {
+      transform: scale(1.05);
+      background: rgba(0,212,170,0.25);
+      box-shadow: 0 0 20px rgba(0,212,170,0.2);
+    }
+    
+    .music-volume {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 8px;
+      margin-bottom: 12px;
+    }
+    .music-volume i {
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      opacity: 0.7;
+    }
+    .music-volume-slider {
+      flex: 1;
+      height: 3px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: rgba(255,255,255,0.06);
+      border-radius: 2px;
+      cursor: pointer;
+    }
+    .music-volume-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 10px;
+      height: 10px;
+      background: var(--primary);
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    
+    /* Hide volume on mobile */
+    @media (max-width: 768px) {
+      .music-volume { display: none; }
+      .music-controls { margin-bottom: 12px; }
+    }
+    
+    .music-playlist {
+      max-height: 140px;
+      overflow-y: auto;
+      border-top: 1px solid rgba(255,255,255,0.04);
+      padding-top: 10px;
+      margin-top: 10px;
+    }
+    .music-playlist-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+    }
+    .music-playlist-item:hover {
+      background: rgba(255,255,255,0.03);
+      color: var(--text-primary);
+    }
+    .music-playlist-item.active {
+      background: rgba(0,212,170,0.08);
+      color: var(--primary);
+    }
+    .music-playlist-item i {
+      font-size: 0.7rem;
+    }
+
+    /* leaderboard panel */
+    .leaderboard {
+      margin-top: 12px; padding: 8px; border-radius: 8px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.002), rgba(255,255,255,0.001));
+      border: 1px solid rgba(255,255,255,0.01);
+      max-height: 220px; overflow: auto;
+    }
+    .leaderboard h4 { margin: 6px 0; color: var(--text-primary); font-size: 0.95rem; }
+    .leaderboard-list { list-style:none; padding:0; margin:0; }
+    .leaderboard-list li { padding:6px 8px; border-bottom: 1px dashed rgba(255,255,255,0.02); color:var(--text-secondary); display:flex; justify-content:space-between; font-size:0.9rem; }
+    .leaderboard-controls { display:flex; gap:8px; margin-top:8px; align-items:center; }
+
+    /* touch controls shown in mobile for the snake game */
+    .touch-controls { display:none; gap:8px; }
+    .touch-controls .arrow { width:48px; height:48px; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.04); color:var(--text-primary); }
+
+    @media (max-width: 768px) {
+      .cursor-glow { display: none; }
+      .touch-controls { display:flex; }
+      .game-window { width: calc(96vw); padding: 12px; }
+      .game-canvas { height: 300px; }
+      .project-card, .github-profile { transform: none !important; }
+    }
+
     .menu-item {
       display: flex; align-items: center; gap: 16px;
       padding: 20px 24px;
@@ -318,6 +819,7 @@
       margin-bottom: 48px; font-size: 2.2rem;
       font-weight: 600; color: var(--text-primary);
       flex-wrap: wrap;
+      animation: fadeInUp 0.5s ease both;
     }
 
     .section-header i { color: var(--primary); font-size: 2.4rem; }
@@ -329,15 +831,16 @@
       transform: translateX(-50%);
       width: 95%; max-width: 1100px;
       max-height: 480px;
-      background: rgba(18,18,28,0.98);
-      border: 2px solid var(--border);
+      background: linear-gradient(180deg, rgba(255,255,255,0.004), rgba(255,255,255,0.002));
+      backdrop-filter: blur(20px) saturate(100%);
+      -webkit-backdrop-filter: blur(20px) saturate(100%);
+      border: 1px solid rgba(255,255,255,0.02);
       border-radius: 18px;
-      padding: 28px;
-      backdrop-filter: blur(26px);
+      padding: 20px;
       z-index: 200;
       transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
       pointer-events: none;
-      box-shadow: 0 28px 80px rgba(0,0,0,0.65);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
     }
 
     .terminal.active {
@@ -401,15 +904,19 @@
 
     /* GitHub Profile */
     .github-profile {
-      background: linear-gradient(135deg, var(--bg-dark) 0%, rgba(20,20,30,0.96) 100%);
-      border-radius: 20px;
-      padding: 72px 48px;
-      margin-bottom: 48px;
-      border: 2px solid var(--border);
+      /* transparent profile card */
+      background: transparent;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      border-radius: 18px;
+      padding: 56px 36px;
+      margin-bottom: 36px;
+      border: 1px solid transparent;
       position: relative;
       overflow: hidden;
       text-align: center;
-      box-shadow: 0 36px 90px rgba(0,0,0,0.6);
+      box-shadow: none;
+      animation: fadeInUp 0.6s ease both;
     }
 
     /* top decorative bar removed to match site theme */
@@ -420,41 +927,217 @@
       align-items: center;
       gap: 24px;
       margin-bottom: 24px;
+      animation: fadeIn 0.5s ease both;
     }
 
     .avatar-container {
       position: relative;
-      width: 140px;
-      height: 140px;
+      width: 160px;
+      height: 160px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transform: translateZ(0);
+      margin: 0 auto;
+      animation: scaleIn 0.6s ease 0.2s both;
+    }
+
+    /* Rotating border ring */
+    .avatar-container::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 152px;
+      height: 152px;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      background: conic-gradient(
+        from 0deg,
+        transparent 0deg,
+        rgba(0,212,170,0.6) 15deg,
+        transparent 50deg,
+        transparent 130deg,
+        rgba(0,212,170,0.4) 150deg,
+        transparent 185deg,
+        transparent 260deg,
+        rgba(0,212,170,0.5) 280deg,
+        transparent 315deg,
+        transparent 360deg
+      );
+      -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #fff calc(100% - 2px));
+      mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #fff calc(100% - 2px));
+      animation: borderSpin 8s linear infinite;
+      z-index: 3;
+      pointer-events: none;
+    }
+
+    @keyframes borderSpin {
+      0% { transform: translate(-50%, -50%) rotate(0deg); }
+      100% { transform: translate(-50%, -50%) rotate(360deg); }
     }
 
     .avatar-glow {
       position: absolute;
-      inset: -8px;
-      background: radial-gradient(circle, rgba(0, 212, 170, 0.22) 0%, transparent 70%);
+      top: 50%;
+      left: 50%;
+      width: calc(100% + 28px);
+      height: calc(100% + 28px);
+      transform: translate(-50%, -50%) scale(1) translateZ(0);
+      background: radial-gradient(circle at 28% 28%, rgba(0,212,170,0.22) 0%, rgba(0,180,148,0.10) 40%, transparent 70%);
       border-radius: 50%;
-      animation: avatarPulse 3s ease-in-out infinite;
+      filter: blur(24px) saturate(130%);
+      opacity: 0.92;
+      will-change: transform, opacity;
+      animation: avatarGlow 6s cubic-bezier(.25,.46,.45,.94) infinite;
+      pointer-events: none;
+      mix-blend-mode: screen;
     }
 
-    @keyframes avatarPulse {
-      0%, 100% { transform: scale(1); opacity: 0.5; }
-      50% { transform: scale(1.1); opacity: 1; }
+    @keyframes avatarGlow {
+      0% { transform: translate(-50%, -50%) scale(1) translateZ(0); opacity: 0.45; }
+      40% { transform: translate(-50%, -50%) scale(1.08) translateZ(0); opacity: 0.75; }
+      50% { transform: translate(-50%, -50%) scale(1.12) translateZ(0); opacity: 0.85; }
+      60% { transform: translate(-50%, -50%) scale(1.06) translateZ(0); opacity: 0.72; }
+      100% { transform: translate(-50%, -50%) scale(1) translateZ(0); opacity: 0.45; }
     }
 
     .profile-avatar {
       width: 140px;
       height: 140px;
       border-radius: 50%;
-      border: 4px solid var(--primary);
-      box-shadow: 0 0 40px rgba(0, 212, 170, 0.45);
-      transition: all 0.4s ease;
+      border: 2px solid rgba(0,212,170,0.25);
+      box-sizing: border-box;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.35), 0 0 20px rgba(0,212,170,0.08);
+      transition: transform 320ms cubic-bezier(.25,.46,.45,.94), box-shadow 320ms;
       position: relative;
-      z-index: 1;
+      z-index: 2;
+      transform-origin: center center;
+      animation: avatarBreath 6s cubic-bezier(.25,.46,.45,.94) infinite;
+      will-change: transform, box-shadow;
+      backface-visibility: hidden;
+      transform: translateZ(0);
+      object-fit: cover;
     }
 
     .profile-avatar:hover {
-      transform: scale(1.12);
-      box-shadow: 0 0 60px rgba(0, 212, 170, 0.65);
+      transform: scale(1.06) translateZ(0);
+      box-shadow: 0 20px 72px rgba(0,0,0,0.45), 0 0 40px rgba(0,212,170,0.15);
+    }
+
+    @keyframes avatarBreath {
+      0% { transform: translateZ(0) scale(1); box-shadow: 0 12px 40px rgba(0,0,0,0.30), 0 0 15px rgba(0,212,170,0.06); }
+      35% { transform: translateZ(0) scale(1.02); box-shadow: 0 16px 48px rgba(0,0,0,0.35), 0 0 20px rgba(0,212,170,0.10); }
+      50% { transform: translateZ(0) scale(1.04); box-shadow: 0 24px 64px rgba(0,0,0,0.42), 0 0 28px rgba(0,212,170,0.14); }
+      65% { transform: translateZ(0) scale(1.03); box-shadow: 0 20px 56px rgba(0,0,0,0.38), 0 0 22px rgba(0,212,170,0.11); }
+      100% { transform: translateZ(0) scale(1); box-shadow: 0 12px 40px rgba(0,0,0,0.30), 0 0 15px rgba(0,212,170,0.06); }
+    }
+
+    /* outline ring that spreads into glow */
+    .profile-avatar::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: calc(100% + 32px);
+      height: calc(100% + 32px);
+      transform: translate(-50%, -50%) scale(1) translateZ(0);
+      border-radius: 50%;
+      z-index: -1;
+      background: radial-gradient(circle, rgba(0,212,170,0.06) 0%, rgba(0,180,148,0.03) 40%, transparent 70%);
+      filter: blur(18px) saturate(125%);
+      opacity: 0.70;
+      will-change: transform, opacity;
+      animation: avatarRing 6s cubic-bezier(.25,.46,.45,.94) infinite;
+      pointer-events: none;
+      backface-visibility: hidden;
+    }
+
+    @keyframes avatarRing {
+      0% { transform: translate(-50%, -50%) scale(1) translateZ(0); opacity: 0.55; }
+      40% { transform: translate(-50%, -50%) scale(1.10) translateZ(0); opacity: 0.82; }
+      50% { transform: translate(-50%, -50%) scale(1.16) translateZ(0); opacity: 0.90; }
+      60% { transform: translate(-50%, -50%) scale(1.08) translateZ(0); opacity: 0.78; }
+      100% { transform: translate(-50%, -50%) scale(1) translateZ(0); opacity: 0.55; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .avatar-glow, .profile-avatar, .profile-avatar::after, .avatar-container::before { animation: none !important; transition: none !important; }
+    }
+
+    /* Tablet optimizations */
+    @media (max-width: 768px) {
+      .avatar-container { width: 140px; height: 140px; }
+      .avatar-container::before { 
+        width: 134px; 
+        height: 134px;
+        background: conic-gradient(
+          from 0deg,
+          transparent 0deg,
+          rgba(0,212,170,0.6) 15deg,
+          transparent 50deg,
+          transparent 130deg,
+          rgba(0,212,170,0.4) 150deg,
+          transparent 185deg,
+          transparent 260deg,
+          rgba(0,212,170,0.5) 280deg,
+          transparent 315deg,
+          transparent 360deg
+        );
+        -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #fff calc(100% - 2px));
+        mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #fff calc(100% - 2px));
+        animation: borderSpin 8s linear infinite;
+      }
+      .profile-avatar { width: 120px; height: 120px; border-width: 2px; }
+      .avatar-glow { width: calc(100% + 28px); height: calc(100% + 28px); filter: blur(24px) saturate(130%); opacity: 0.92; }
+      .profile-avatar::after { width: calc(100% + 32px); height: calc(100% + 32px); filter: blur(18px) saturate(125%); opacity: 0.70; }
+      .avatar-glow, .profile-avatar, .profile-avatar::after { animation-duration: 6s; }
+    }
+
+    /* Mobile optimizations */
+    @media (max-width: 480px) {
+      .avatar-container { width: 120px; height: 120px; }
+      .avatar-container::before { 
+        width: 116px; 
+        height: 116px;
+        background: conic-gradient(
+          from 0deg,
+          transparent 0deg,
+          rgba(0,212,170,0.6) 15deg,
+          transparent 50deg,
+          transparent 130deg,
+          rgba(0,212,170,0.4) 150deg,
+          transparent 185deg,
+          transparent 260deg,
+          rgba(0,212,170,0.5) 280deg,
+          transparent 315deg,
+          transparent 360deg
+        );
+        -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #fff calc(100% - 3px));
+        mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #fff calc(100% - 3px));
+        animation: borderSpin 8s linear infinite;
+      }
+      .profile-avatar { 
+        width: 96px; 
+        height: 96px; 
+        border-width: 2px; 
+        box-shadow: 0 12px 40px rgba(0,0,0,0.35), 0 0 20px rgba(0,212,170,0.08); 
+        animation: none;
+        transform: translateZ(0);
+      }
+      .avatar-glow { 
+        width: calc(100% + 28px); 
+        height: calc(100% + 28px); 
+        opacity: 0.92; 
+        filter: blur(24px) saturate(130%); 
+      }
+      .profile-avatar::after { 
+        width: calc(100% + 32px); 
+        height: calc(100% + 32px); 
+        opacity: 0.70; 
+        filter: blur(18px) saturate(125%); 
+      }
+      .avatar-glow, .profile-avatar::after { animation-duration: 6s; }
     }
 
     .profile-name {
@@ -463,6 +1146,7 @@
       font-weight: 700;
       margin-bottom: 8px;
       letter-spacing: -1px;
+      animation: fadeInUp 0.5s ease 0.3s both;
     }
 
     .profile-title {
@@ -470,11 +1154,13 @@
       font-size: 18px;
       font-weight: 500;
       margin-bottom: 12px;
+      animation: fadeIn 0.5s ease 0.4s both;
     }
 
     .expertise-container {
       width: 100%;
       margin-bottom: 24px;
+      animation: fadeIn 0.5s ease 0.5s both;
     }
 
     .expertise-title {
@@ -515,12 +1201,15 @@
       color: #c9d1d9;
       font-size: 16px;
       line-height: 1.8;
-      background: rgba(0,0,0,0.55);
-      padding: 28px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.003), rgba(255,255,255,0.0015));
+      backdrop-filter: blur(14px) saturate(102%);
+      -webkit-backdrop-filter: blur(14px) saturate(102%);
+      padding: 18px;
       border-radius: 14px;
-      border-left: 4px solid var(--primary);
+      border-left: 4px solid rgba(0,212,170,0.68);
       text-align: center;
-      margin-bottom: 28px;
+      margin-bottom: 20px;
+      animation: fadeInUp 0.5s ease 0.6s both;
     }
 
     .cta-buttons {
@@ -528,7 +1217,37 @@
       gap: 12px;
       justify-content: center;
       flex-wrap: wrap;
+      animation: fadeInUp 0.5s ease 0.7s both;
     }
+
+    /* About dropdown */
+    details.about-me {
+      margin-top: 18px;
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 10px;
+      border: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+      animation: fadeIn 0.5s ease 0.8s both;
+    }
+
+    details.about-me summary {
+      list-style: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; padding: 8px 12px; border-radius: 10px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.002), rgba(255,255,255,0.0008));
+      color: var(--text-primary); font-weight: 600;
+      border: 1px solid rgba(255,255,255,0.01);
+    }
+
+    details.about-me summary::-webkit-details-marker { display:none; }
+    details.about-me .caret { transition: transform 180ms ease; opacity: 0.9; }
+    details.about-me[open] .caret { transform: rotate(90deg); }
+
+    /* Emphasize CTA links so they stand out when bio is collapsed */
+    .cta-btn { transition: box-shadow 180ms, transform 180ms; }
+    .cta-primary { box-shadow: 0 10px 30px rgba(0,212,170,0.12); border-color: rgba(0,212,170,0.14); }
+    .cta-secondary { box-shadow: 0 8px 22px rgba(99,102,241,0.08); }
 
     .cta-btn {
       display: inline-flex;
@@ -617,10 +1336,13 @@
     }
 
     .timeline-content {
-      background: rgba(20,20,30,0.96);
-      border: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(255,255,255,0.002), rgba(255,255,255,0.001));
+      backdrop-filter: blur(12px) saturate(100%);
+      -webkit-backdrop-filter: blur(12px) saturate(100%);
+      border: 1px solid rgba(255,255,255,0.02);
       border-radius: 10px;
-      padding: 26px; backdrop-filter: blur(12px);
+      padding: 18px;
+      animation: fadeInUp 0.5s ease both;
     }
 
     /* Projects - MOBILE FRIENDLY */
@@ -631,19 +1353,23 @@
     }
 
     .project-card {
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      padding: 44px;
-      min-height: 220px;
-      cursor: pointer; transition: transform 0.25s ease, box-shadow 0.25s ease;
+      /* much lighter glass for project cards */
+      background: linear-gradient(180deg, rgba(255,255,255,0.0015), rgba(255,255,255,0.0008));
+      backdrop-filter: blur(14px) saturate(98%);
+      -webkit-backdrop-filter: blur(14px) saturate(98%);
+      border: 1px solid rgba(255,255,255,0.008);
+      border-radius: 16px;
+      padding: 30px;
+      min-height: 200px;
+      cursor: pointer; transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.2s ease;
       position: relative; overflow: hidden;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+      box-shadow: 0 10px 28px rgba(0,0,0,0.28);
+      animation: fadeInUp 0.5s ease both;
     }
 
     .project-card:hover, .project-card:active {
-      border-color: rgba(255,255,255,0.12);
-      box-shadow: 0 40px 80px rgba(0,0,0,0.45);
+      border-color: rgba(255,255,255,0.06);
+      box-shadow: 0 28px 60px rgba(0,0,0,0.36);
       transform: translateY(-6px);
     }
 
@@ -727,6 +1453,224 @@
       background: rgba(0, 212, 170, 0.08);
     }
 
+    /* Blog Section */
+    .blog-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 28px;
+    }
+
+    .blog-card {
+      text-decoration: none;
+      display: block;
+      background: linear-gradient(180deg, rgba(255,255,255,0.0018), rgba(255,255,255,0.0008));
+      backdrop-filter: blur(16px) saturate(100%);
+      -webkit-backdrop-filter: blur(16px) saturate(100%);
+      border: 1px solid rgba(255,255,255,0.01);
+      border-radius: 18px;
+      overflow: hidden;
+      transition: transform 0.28s cubic-bezier(.25,.46,.45,.94), box-shadow 0.28s ease, border-color 0.2s ease;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.28);
+      position: relative;
+      animation: fadeInUp 0.6s ease both;
+    }
+
+    .blog-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--primary), #6366f1, #a855f7);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .blog-card:hover::before {
+      opacity: 1;
+    }
+
+    .blog-card:hover {
+      transform: translateY(-8px);
+      border-color: rgba(255,255,255,0.06);
+      box-shadow: 0 32px 64px rgba(0,0,0,0.38), 0 0 40px rgba(0,212,170,0.08);
+    }
+
+    /* Staggered animations for cards */
+    .blog-card:nth-child(1) { animation-delay: 0.1s; }
+    .blog-card:nth-child(2) { animation-delay: 0.2s; }
+    .blog-card:nth-child(3) { animation-delay: 0.3s; }
+    .blog-card:nth-child(4) { animation-delay: 0.4s; }
+
+    .project-card:nth-child(1) { animation-delay: 0.1s; }
+    .project-card:nth-child(2) { animation-delay: 0.15s; }
+    .project-card:nth-child(3) { animation-delay: 0.2s; }
+    .project-card:nth-child(4) { animation-delay: 0.25s; }
+    .project-card:nth-child(5) { animation-delay: 0.3s; }
+    .project-card:nth-child(6) { animation-delay: 0.35s; }
+
+    .timeline-item:nth-child(1) .timeline-content { animation-delay: 0.1s; }
+    .timeline-item:nth-child(2) .timeline-content { animation-delay: 0.2s; }
+    .timeline-item:nth-child(3) .timeline-content { animation-delay: 0.3s; }
+    .timeline-item:nth-child(4) .timeline-content { animation-delay: 0.4s; }
+    .timeline-item:nth-child(5) .timeline-content { animation-delay: 0.5s; }
+
+    .blog-card-inner {
+      padding: 28px;
+      display: flex;
+      gap: 20px;
+    }
+
+    .blog-icon {
+      flex-shrink: 0;
+      width: 56px;
+      height: 56px;
+      background: linear-gradient(135deg, rgba(0,212,170,0.15), rgba(99,102,241,0.12));
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      color: var(--primary);
+      border: 1px solid rgba(0,212,170,0.2);
+      transition: transform 0.3s ease, background 0.3s ease;
+    }
+
+    .blog-card:hover .blog-icon {
+      transform: scale(1.08) rotate(-3deg);
+      background: linear-gradient(135deg, rgba(0,212,170,0.25), rgba(99,102,241,0.2));
+    }
+
+    .blog-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .blog-meta {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .blog-category, .blog-read-time {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .blog-category i, .blog-read-time i {
+      color: var(--primary);
+      font-size: 0.7rem;
+    }
+
+    .blog-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+      line-height: 1.35;
+      transition: color 0.2s ease;
+    }
+
+    .blog-card:hover .blog-title {
+      color: var(--primary);
+    }
+
+    .blog-excerpt {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin-bottom: 16px;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .blog-tags {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .blog-tag {
+      background: rgba(99,102,241,0.12);
+      color: #a5b4fc;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      border: 1px solid rgba(99,102,241,0.15);
+      transition: background 0.2s ease, border-color 0.2s ease;
+    }
+
+    .blog-card:hover .blog-tag {
+      background: rgba(99,102,241,0.18);
+      border-color: rgba(99,102,241,0.25);
+    }
+
+    .blog-read-more {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--primary);
+      opacity: 0.85;
+      transition: opacity 0.2s ease, gap 0.2s ease;
+    }
+
+    .blog-read-more i {
+      font-size: 0.75rem;
+      transition: transform 0.2s ease;
+    }
+
+    .blog-card:hover .blog-read-more {
+      opacity: 1;
+      gap: 12px;
+    }
+
+    .blog-card:hover .blog-read-more i {
+      transform: translateX(4px);
+    }
+
+    @media (max-width: 768px) {
+      .blog-grid {
+        grid-template-columns: 1fr;
+      }
+      .blog-card-inner {
+        flex-direction: column;
+        padding: 22px;
+      }
+      .blog-icon {
+        width: 48px;
+        height: 48px;
+        font-size: 1.25rem;
+      }
+      .blog-title {
+        font-size: 1.1rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .blog-card-inner {
+        padding: 18px;
+      }
+      .blog-title {
+        font-size: 1rem;
+      }
+      .blog-excerpt {
+        font-size: 0.85rem;
+        -webkit-line-clamp: 2;
+      }
+      .blog-meta {
+        gap: 10px;
+      }
+    }
+
     /* Loading states */
     .projects-grid .loading, .projects-grid .error {
       grid-column: 1 / -1;
@@ -773,6 +1717,10 @@
         bottom: 20px; right: 20px;
         width: 52px; height: 52px;
       }
+
+      /* keep game toggle stacked above terminal on mobile */
+      .game-toggle { right: 20px; bottom: 86px; }
+      .music-toggle { right: 20px; bottom: 156px; }
       
       .profile-avatar {
         width: 120px; height: 120px;
@@ -832,11 +1780,7 @@
       <div class="loader-subtitle">booting up...</div>
 
       <div class="loader-terminal">
-        <div class="loader-line">[0x0000] initializing corny space background</div>
-        <div class="loader-line">[0x0001] ye this actually isn't doing anything</div>
-        <div class="loader-line">[0x0002] cheesecakes are nice</div>
-        <div class="loader-line">[0x0003] hmmmmmmmmmmmmmmmmmmmmmm</div>
-        <div class="loader-line">[0x0004] ready </div>
+        <div id="loaderInfo" style="display:flex;flex-direction:column;gap:6px;padding:6px 0"></div>
       </div>
 
       <div class="loader-progress">
@@ -853,10 +1797,13 @@
 
   <!-- Desktop Navigation -->
   <div class="nav-container">
-    <div class="nav-btn active" data-section="achievements" title="Portfolio"><i class="fas fa-user"></i></div>
+    <div class="nav-btn active" data-section="achievements" title="About Me"><i class="fas fa-user"></i></div>
+    <div class="nav-btn" data-section="blog" title="Blog"><i class="fas fa-blog"></i></div>
     <div class="nav-btn" data-section="projects" title="Projects"><i class="fas fa-code"></i></div>
     <div class="nav-btn" data-section="timeline" title="Journey"><i class="fas fa-road"></i></div>
     <div class="nav-btn" data-section="contact" title="Contact"><i class="fas fa-envelope"></i></div>
+    <div class="nav-btn game-btn" id="openGame" title="Play Mini-Game"><i class="fas fa-gamepad"></i></div>
+    <div class="nav-btn music-btn" id="openMusic" title="Music Player"><i class="fas fa-music"></i></div>
   </div>
 
   <!-- Mobile Hamburger Menu -->
@@ -866,18 +1813,30 @@
       <div class="hamburger-line"></div>
       <div class="hamburger-line"></div>
     </div>
-  </div>  
+  </div>
+
+  <!-- Mobile First-Time Hint Popup -->
+  <div class="mobile-hint-popup" id="mobileHintPopup">
+    <div class="hint-text">
+      Tap the <strong>menu button</strong> to explore my site!
+    </div>
+    <button class="hint-dismiss-btn" id="hintDismissBtn">Got it!</button>
+  </div>
+
   <div class="nav-menu" id="navMenu">
     <div class="menu-item active" data-section="achievements">
-      <i class="fas fa-user"></i> Portfolio
+      <i class="fas fa-user"></i> About Me
+    </div>
+    <div class="menu-item" data-section="blog">
+      <i class="fas fa-blog"></i> Blog
     </div>
     <div class="menu-item" data-section="projects">
       <i class="fab fa-github"></i> Projects
     </div>
-        <div class="menu-item" data-section="timeline">
+    <div class="menu-item" data-section="timeline">
       <i class="fas fa-road"></i> Journey
     </div>
-        <div class="menu-item" data-section="contact">
+    <div class="menu-item" data-section="contact">
       <i class="fas fa-envelope"></i> Contact
     </div>
   </div>
@@ -885,10 +1844,6 @@
   <div class="main-content">
     <!-- Achievements Section -->
     <section id="achievements" class="section active">
-      <div class="section-header">
-        <i class="fas fa-user"></i>
-        <span>Portfolio</span>
-      </div>
       
       <div class="github-profile">
         <div class="profile-main">
@@ -901,31 +1856,42 @@
             <div class="profile-title">zer0condition</div>
           </div>
           
-          <div class="expertise-container">
-            <div class="expertise-title">Interested In</div>
-            <div class="expertise-tags">
-              <span class="expertise-tag">Windows/Linux Kernel Exploitation</span>
-              <span class="expertise-tag">Hypervisor Research</span>
-              <span class="expertise-tag">Reverse Engineering</span>
-              <span class="expertise-tag">x86_x64 Architecture</span>
-              <span class="expertise-tag">Music Production</span>
-            </div>
-          </div>
-          
-          <div class="profile-bio">
-            <p>Hello! I am a 19 year-old systems researcher mainly focused on kernel internals, hypervisors, CPUs and security module architectures.</p> <br>
-            <p>This is a one-file portfolio page to highlight some of my work and journey! Feel free to explore and reach out if you'd like to connect!</p> <br>
-            <p>P.S. I also like to dress and mess around with digital music production in my free time:) </p>
-          </div>
-          
           <div class="cta-buttons">
+
+            <a href="https://discord.com/users/164431138507456512" target="_blank" class="cta-btn cta-primary">
+              <i class="fab fa-discord"></i> Discord
+            </a>
+
+
             <a href="https://github.com/zer0condition" target="_blank" class="cta-btn cta-primary">
               <i class="fab fa-github"></i> GitHub
             </a>
+
+  
             <a href="https://soundcloud.com/wezo-417623843" target="_blank" class="cta-btn cta-secondary">
               <i class="fab fa-soundcloud"></i> SoundCloud
             </a>
           </div>
+
+          <details class="about-me" id="aboutMe">
+            <summary>Learn more about me <span class="caret">▸</span></summary>
+            <div class="expertise-container" style="margin-top:12px;">
+              <div class="expertise-title">Interested In</div>
+              <div class="expertise-tags">
+                <span class="expertise-tag">Windows/Linux Kernel Exploitation</span>
+                <span class="expertise-tag">Hypervisor Research</span>
+                <span class="expertise-tag">Reverse Engineering</span>
+                <span class="expertise-tag">x86_x64 Architecture</span>
+                <span class="expertise-tag">Music Production</span>
+              </div>
+            </div>
+            
+            <div class="profile-bio" style="margin-top:12px;">
+              <p>Hello! I am a 19 year-old systems researcher mainly focused on kernel internals, hypervisors, CPUs and security module architectures.</p>
+              <p>This is a one-file portfolio page to highlight some of my work and journey! Feel free to explore and reach out if you'd like to connect!</p>
+              <p>P.S. I also like to dress and mess around with digital music production in my free time:) </p>
+            </div>
+          </details>
         </div>
       </div>
     </section>
@@ -979,6 +1945,65 @@
       </div>
     </section>
 
+    <!-- Blog Section -->
+    <section id="blog" class="section">
+      <div class="section-header">
+        <i class="fas fa-blog"></i>
+        <span>Blog Posts</span>
+      </div>
+      <div class="blog-grid">
+        <a href="posts/demystifying-patchguard/index.html" class="blog-card">
+          <div class="blog-card-inner">
+            <div class="blog-icon">
+              <i class="fas fa-shield-alt"></i>
+            </div>
+            <div class="blog-content">
+              <div class="blog-meta">
+                <span class="blog-category"><i class="fas fa-tag"></i> Kernel Security</span>
+                <span class="blog-read-time"><i class="fas fa-clock"></i> Long Read</span>
+              </div>
+              <h3 class="blog-title">Demystifying PatchGuard: An In-Depth Analysis Through Practical Engineering</h3>
+              <p class="blog-excerpt">A comprehensive analysis of Microsoft's sophisticated security feature called PatchGuard, designed to prevent unauthorized modifications to the Windows kernel. Explores inner workings and possible bypass methods.</p>
+              <div class="blog-tags">
+                <span class="blog-tag">PatchGuard</span>
+                <span class="blog-tag">Windows Kernel</span>
+                <span class="blog-tag">Security Research</span>
+              </div>
+              <div class="blog-read-more">
+                <span>Read Article</span>
+                <i class="fas fa-arrow-right"></i>
+              </div>
+            </div>
+          </div>
+        </a>
+        
+        <a href="posts/reversing-a-signed-driver/index.html" class="blog-card">
+          <div class="blog-card-inner">
+            <div class="blog-icon">
+              <i class="fas fa-microchip"></i>
+            </div>
+            <div class="blog-content">
+              <div class="blog-meta">
+                <span class="blog-category"><i class="fas fa-tag"></i> Reverse Engineering</span>
+                <span class="blog-read-time"><i class="fas fa-clock"></i> Medium Read</span>
+              </div>
+              <h3 class="blog-title">Reverse Engineering a Signed Kernel Driver ft. VMProtect</h3>
+              <p class="blog-excerpt">A deep dive into cracking a protected kernel driver, exploring VMProtect obfuscation techniques and methods to analyze signed drivers through practical reverse engineering.</p>
+              <div class="blog-tags">
+                <span class="blog-tag">VMProtect</span>
+                <span class="blog-tag">Kernel Driver</span>
+                <span class="blog-tag">Reverse Engineering</span>
+              </div>
+              <div class="blog-read-more">
+                <span>Read Article</span>
+                <i class="fas fa-arrow-right"></i>
+              </div>
+            </div>
+          </div>
+        </a>
+      </div>
+    </section>
+
     <!-- Projects -->
     <section id="projects" class="section">
       <div class="section-header">
@@ -998,8 +2023,10 @@
           Location: Somewhere in Asia.<br>
         </div>
         <div class="contact-links">
-          <a class="contact-link" href="https://discord.com/users/164431138507456512">
-            <i class="fab fa-discord"></i> Discord
+
+
+          <a href="mailto:zer0condition61@gmail.com" class="contact-link">
+            <i class="fas fa-envelope"></i> Email
           </a>
         </div>
       </div>
@@ -1009,6 +2036,22 @@
   <!-- Terminal Toggle Button -->
   <div class="terminal-toggle" id="terminalToggle" title="Toggle Terminal">
     <i class="fas fa-terminal"></i>
+  </div>
+
+  <div class="terminal-toggle music-toggle" id="musicToggle" title="Music Player">
+    <i class="fas fa-music"></i>
+  </div>
+
+  <!-- Music Hint Popup -->
+  <div class="music-hint-popup" id="musicHintPopup">
+    <div class="hint-text">
+      Want to listen to my <strong>metal playlist</strong> while you browse?
+    </div>
+    <button class="hint-dismiss-btn" id="musicHintDismissBtn">Got it!</button>
+  </div>
+
+  <div class="terminal-toggle game-toggle" id="gameToggle" title="Open Game">
+    <i class="fas fa-gamepad"></i>
   </div>
 
   <!-- Terminal -->
@@ -1025,6 +2068,75 @@
       <input id="terminalInput" placeholder="type 'help' for commands..." autofocus>
     </div>
   </div>
+
+  <!-- Mini-game Modal -->
+  <div class="game-modal" id="gameModal" aria-hidden="true">
+    <div class="game-backdrop" id="gameBackdrop"></div>
+    <div class="game-window" role="dialog" aria-label="Mini Game">
+      <div class="game-header">
+        <div style="display:flex;gap:10px;align-items:center;">
+          <div class="game-title" id="gameTitle">Mini-games</div>
+          <div style="display:flex;gap:6px;">
+            <button class="btn-small" id="btnModeSnake">Snake</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <div id="gameScore" style="color:var(--text-secondary)">Score: 0</div>
+          <div id="gameHigh" style="color:var(--text-secondary); font-size:0.85rem; opacity:0.9;">Best: 0</div>
+          <button class="btn-small" id="closeGame">Close</button>
+        </div>
+      </div>
+      <canvas id="gameCanvas" class="game-canvas" width="640" height="420"></canvas>
+      <div class="game-controls">
+        <div style="color:var(--text-secondary); font-size:0.9rem">Use arrow keys to move.</div>
+        <div>
+          <button class="btn-small" id="restartGame">Restart</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Music Player Modal -->
+  <div class="music-modal" id="musicModal" aria-hidden="true">
+    <div class="music-backdrop" id="musicBackdrop"></div>
+    <div class="music-window" role="dialog" aria-label="Music Player">
+      <div class="music-header">
+        <div class="music-title">Music</div>
+        <button class="btn-small" id="closeMusic">Close</button>
+      </div>
+      <div class="music-artwork" id="musicArtwork">
+        <i class="fas fa-compact-disc"></i>
+      </div>
+      <div class="music-info">
+        <div class="music-track-name" id="musicTrackName">No track loaded</div>
+        <div class="music-track-artist" id="musicTrackArtist">Add songs to /songs folder</div>
+      </div>
+      <div class="music-progress">
+        <div class="music-progress-bar" id="musicProgressBar">
+          <div class="music-progress-fill" id="musicProgressFill"></div>
+        </div>
+        <div class="music-time">
+          <span id="musicCurrentTime">0:00</span>
+          <span id="musicDuration">0:00</span>
+        </div>
+      </div>
+      <div class="music-controls">
+        <button class="music-btn" id="musicPrev" title="Previous"><i class="fas fa-backward"></i></button>
+        <button class="music-btn play-btn" id="musicPlayPause" title="Play/Pause"><i class="fas fa-play"></i></button>
+        <button class="music-btn" id="musicNext" title="Next"><i class="fas fa-forward"></i></button>
+      </div>
+      <div class="music-volume">
+        <i class="fas fa-volume-down"></i>
+        <input type="range" class="music-volume-slider" id="musicVolume" min="0" max="100" value="80">
+        <i class="fas fa-volume-up"></i>
+      </div>
+      <div class="music-playlist" id="musicPlaylist">
+        <!-- Playlist items will be added dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <div class="cursor-glow" id="cursorGlow"></div>
 
   <script>
     let currentSection = 'achievements';
@@ -1093,6 +2205,354 @@
       });
     });
 
+    // cursor glow follow (desktop only)
+    const cursor = document.getElementById('cursorGlow');
+    if (cursor && !('ontouchstart' in window) && window.innerWidth > 768) {
+      window.addEventListener('mousemove', (e) => {
+        cursor.style.left = e.clientX + 'px';
+        cursor.style.top = e.clientY + 'px';
+        cursor.style.opacity = '1';
+        cursor.style.transform = 'translate(-50%, -50%) scale(1)';
+        clearTimeout(window._cursorHide);
+        window._cursorHide = setTimeout(() => { cursor.style.opacity = '0'; cursor.style.transform = 'translate(-50%, -50%) scale(0.6)'; }, 350);
+      });
+      // click ripple
+      window.addEventListener('mousedown', (e) => {
+        cursor.style.transform = 'translate(-50%, -50%) scale(1.4)';
+        setTimeout(()=>{ cursor.style.transform = 'translate(-50%, -50%) scale(1)'; }, 120);
+      });
+    }
+
+    // card tilt / parallax
+      function applyTilt(el, strength = 12) {
+      if ('ontouchstart' in window || window.innerWidth <= 768) return; // disable on touch/mobile
+      el.addEventListener('mousemove', (ev) => {
+        const r = el.getBoundingClientRect();
+        const x = (ev.clientX - r.left) / r.width - 0.5;
+        const y = (ev.clientY - r.top) / r.height - 0.5;
+        el.style.transform = `translateZ(0) rotateX(${(-y*strength).toFixed(2)}deg) rotateY(${(x*strength).toFixed(2)}deg)`;
+      });
+      el.addEventListener('mouseleave', () => { el.style.transform = ''; });
+    }
+    document.querySelectorAll('.project-card, .github-profile, .blog-card').forEach(n => applyTilt(n, 8));
+
+    // simple reveal on scroll
+    const revealElements = document.querySelectorAll('.project-card, .timeline-content, .github-profile, .blog-card');
+    const obs = new IntersectionObserver(entries => {
+      entries.forEach(e => { if (e.isIntersecting) e.target.style.transition = 'transform 520ms cubic-bezier(.2,.8,.2,1), opacity 520ms'; e.target.style.transform = 'translateY(0)'; e.target.style.opacity = '1'; }
+      );
+    }, { threshold: 0.08 });
+    revealElements.forEach(el => { el.style.transform = 'translateY(18px)'; el.style.opacity = '0'; obs.observe(el); });
+
+    // Game open/close logic
+    const gameModal = document.getElementById('gameModal');
+    const openGame = document.getElementById('openGame');
+    const gameToggle = document.getElementById('gameToggle');
+    const closeGame = document.getElementById('closeGame');
+    const gameBackdrop = document.getElementById('gameBackdrop');
+    const restartBtn = document.getElementById('restartGame');
+    const scoreEl = document.getElementById('gameScore');
+    const highEl = document.getElementById('gameHigh');
+    const btnModeSnake = document.getElementById('btnModeSnake');
+    // no secondary mode buttons (snake only)
+    const btnUp = document.createElement('button');
+    // attach touch control buttons into the controls area
+    const controlsArea = document.querySelector('.game-controls');
+    if (controlsArea) {
+      const touch = document.createElement('div'); touch.className = 'touch-controls';
+      touch.innerHTML = '<div style="display:flex;gap:6px;align-items:center;"><button id="btnUp" class="arrow">&#8593;</button></div><div style="display:flex;gap:6px;align-items:center;"><button id="btnLeft" class="arrow">&#8592;</button><button id="btnDown" class="arrow">&#8595;</button><button id="btnRight" class="arrow">&#8594;</button></div>';
+      controlsArea.appendChild(touch);
+    }
+
+    function openGameModal() { gameModal.classList.add('active'); gameModal.setAttribute('aria-hidden','false'); startSnake(); }
+    function closeGameModal() { gameModal.classList.remove('active'); gameModal.setAttribute('aria-hidden','true'); stopSnake(); }
+    if (openGame) openGame.addEventListener('click', openGameModal);
+    if (gameToggle) gameToggle.addEventListener('click', openGameModal);
+    if (closeGame) closeGame.addEventListener('click', closeGameModal);
+    if (gameBackdrop) gameBackdrop.addEventListener('click', closeGameModal);
+
+    if (restartBtn) restartBtn.addEventListener('click', () => { restartSnake(); });
+
+    // mode switching
+    if (btnModeSnake) btnModeSnake.addEventListener('click', ()=>{
+      gameMode='snake'; document.getElementById('gameTitle').textContent='Snake'; updateHighScoreDisplay(); restartSnake();
+    });
+    // no tetris mode
+
+    // --- Music Player Implementation ---
+    (function initMusicPlayer() {
+      const musicModal = document.getElementById('musicModal');
+      const musicBackdrop = document.getElementById('musicBackdrop');
+      const openMusic = document.getElementById('openMusic');
+      const closeMusic = document.getElementById('closeMusic');
+      const musicArtwork = document.getElementById('musicArtwork');
+      const musicTrackName = document.getElementById('musicTrackName');
+      const musicTrackArtist = document.getElementById('musicTrackArtist');
+      const musicProgressBar = document.getElementById('musicProgressBar');
+      const musicProgressFill = document.getElementById('musicProgressFill');
+      const musicCurrentTime = document.getElementById('musicCurrentTime');
+      const musicDuration = document.getElementById('musicDuration');
+      const musicPlayPause = document.getElementById('musicPlayPause');
+      const musicPrev = document.getElementById('musicPrev');
+      const musicNext = document.getElementById('musicNext');
+      const musicVolume = document.getElementById('musicVolume');
+      const musicPlaylist = document.getElementById('musicPlaylist');
+      
+      if (!musicModal) return;
+      
+      let audio = new Audio();
+      let isPlaying = false;
+      let currentTrack = 0;
+      
+      // Define your playlist here - add your song files to the /songs folder
+      // Format: { name: 'Song Title', artist: 'Artist Name', src: 'songs/filename.mp3' }
+      const playlist = [
+        { name: 'Critical Acclaim', artist: 'Avenged Sevenfold', src: 'songs/Avenged Sevenfold -Critical Acclaim.mp3' },
+        { name: 'Carry on Wayward Son', artist: 'Kansas', src: 'songs/Kansas -Carry on Wayward Son.mp3' },
+        { name: 'Holy Wars', artist: 'Megadeth', src: 'songs/Megadeth -Holy Wars.mp3' },
+        { name: 'Ride The Lightning', artist: 'Metallica', src: 'songs/Metallica -Ride The Lightning.mp3' },
+        { name: 'Cowboys from Hell', artist: 'Pantera', src: 'songs/Pantera -Cowboys from Hell.mp3' },
+      ];
+      
+      function formatTime(seconds) {
+        if (isNaN(seconds)) return '0:00';
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+      }
+      
+      function updatePlaylistUI() {
+        musicPlaylist.innerHTML = '';
+        playlist.forEach((track, index) => {
+          if (!track.src) return; // Skip placeholder entries
+          const item = document.createElement('div');
+          item.className = 'music-playlist-item' + (index === currentTrack ? ' active' : '');
+          item.innerHTML = `<i class="fas ${index === currentTrack && isPlaying ? 'fa-pause' : 'fa-play'}"></i> ${track.name}`;
+          item.addEventListener('click', () => {
+            currentTrack = index;
+            loadTrack(currentTrack);
+            playTrack();
+          });
+          musicPlaylist.appendChild(item);
+        });
+      }
+      
+      function loadTrack(index) {
+        const track = playlist[index];
+        if (!track || !track.src) {
+          musicTrackName.textContent = 'No track loaded';
+          musicTrackArtist.textContent = 'Add songs to /songs folder';
+          return;
+        }
+        audio.src = track.src;
+        musicTrackName.textContent = track.name;
+        musicTrackArtist.textContent = track.artist;
+        updatePlaylistUI();
+      }
+      
+      function playTrack() {
+        if (!audio.src || audio.src === window.location.href) return;
+        audio.play();
+        isPlaying = true;
+        musicPlayPause.innerHTML = '<i class="fas fa-pause"></i>';
+        musicArtwork.classList.add('playing');
+        const toggle = document.getElementById('musicToggle');
+        if (toggle) toggle.classList.add('playing');
+        updatePlaylistUI();
+      }
+      
+      function pauseTrack() {
+        audio.pause();
+        isPlaying = false;
+        musicPlayPause.innerHTML = '<i class="fas fa-play"></i>';
+        musicArtwork.classList.remove('playing');
+        const toggle = document.getElementById('musicToggle');
+        if (toggle) toggle.classList.remove('playing');
+        updatePlaylistUI();
+      }
+      
+      function togglePlay() {
+        if (isPlaying) {
+          pauseTrack();
+        } else {
+          playTrack();
+        }
+      }
+      
+      function nextTrack() {
+        const validTracks = playlist.filter(t => t.src);
+        if (validTracks.length === 0) return;
+        currentTrack = (currentTrack + 1) % playlist.length;
+        while (!playlist[currentTrack].src) {
+          currentTrack = (currentTrack + 1) % playlist.length;
+        }
+        loadTrack(currentTrack);
+        playTrack();
+      }
+      
+      function prevTrack() {
+        const validTracks = playlist.filter(t => t.src);
+        if (validTracks.length === 0) return;
+        currentTrack = (currentTrack - 1 + playlist.length) % playlist.length;
+        while (!playlist[currentTrack].src) {
+          currentTrack = (currentTrack - 1 + playlist.length) % playlist.length;
+        }
+        loadTrack(currentTrack);
+        playTrack();
+      }
+      
+      // Audio event listeners
+      audio.addEventListener('timeupdate', () => {
+        const progress = (audio.currentTime / audio.duration) * 100;
+        musicProgressFill.style.width = progress + '%';
+        musicCurrentTime.textContent = formatTime(audio.currentTime);
+      });
+      
+      audio.addEventListener('loadedmetadata', () => {
+        musicDuration.textContent = formatTime(audio.duration);
+      });
+      
+      audio.addEventListener('ended', () => {
+        nextTrack();
+      });
+      
+      // Progress bar click
+      musicProgressBar.addEventListener('click', (e) => {
+        const rect = musicProgressBar.getBoundingClientRect();
+        const percent = (e.clientX - rect.left) / rect.width;
+        audio.currentTime = percent * audio.duration;
+      });
+      
+      // Volume control
+      audio.volume = 0.8;
+      musicVolume.addEventListener('input', (e) => {
+        audio.volume = e.target.value / 100;
+      });
+      
+      // Control buttons
+      musicPlayPause.addEventListener('click', togglePlay);
+      musicNext.addEventListener('click', nextTrack);
+      musicPrev.addEventListener('click', prevTrack);
+      
+      // Modal controls
+      function openMusicModal() {
+        musicModal.classList.add('active');
+        musicModal.setAttribute('aria-hidden', 'false');
+        updatePlaylistUI();
+      }
+      
+      function closeMusicModal() {
+        musicModal.classList.remove('active');
+        musicModal.setAttribute('aria-hidden', 'true');
+      }
+      
+      if (openMusic) openMusic.addEventListener('click', openMusicModal);
+      const musicToggle = document.getElementById('musicToggle');
+      if (musicToggle) musicToggle.addEventListener('click', openMusicModal);
+      if (closeMusic) closeMusic.addEventListener('click', closeMusicModal);
+      if (musicBackdrop) musicBackdrop.addEventListener('click', closeMusicModal);
+      
+      // Save music state to localStorage for cross-page persistence
+      function saveMusicState() {
+        const state = {
+          track: currentTrack,
+          time: audio.currentTime,
+          playing: isPlaying,
+          volume: audio.volume
+        };
+        localStorage.setItem('musicState', JSON.stringify(state));
+      }
+      
+      // Restore music state from localStorage
+      function restoreMusicState() {
+        const saved = localStorage.getItem('musicState');
+        if (saved) {
+          try {
+            const state = JSON.parse(saved);
+            currentTrack = state.track || 0;
+            const track = playlist[currentTrack];
+            if (!track || !track.src) return false;
+            
+            // Pre-configure audio for fast loading
+            audio.preload = 'auto';
+            audio.src = track.src;
+            audio.volume = state.volume || 0.8;
+            if (musicVolume) musicVolume.value = audio.volume * 100;
+            
+            musicTrackName.textContent = track.name;
+            musicTrackArtist.textContent = track.artist;
+            
+            // Use canplay for faster resume (fires earlier than loadedmetadata)
+            const resumePlayback = () => {
+              audio.currentTime = state.time || 0;
+              if (state.playing) {
+                audio.play().catch(() => {});
+                isPlaying = true;
+                musicPlayPause.innerHTML = '<i class="fas fa-pause"></i>';
+                musicArtwork.classList.add('playing');
+                const toggle = document.getElementById('musicToggle');
+                if (toggle) toggle.classList.add('playing');
+              }
+              updatePlaylistUI();
+            };
+            
+            if (audio.readyState >= 3) {
+              resumePlayback();
+            } else {
+              audio.addEventListener('canplay', resumePlayback, { once: true });
+            }
+            return true;
+          } catch (e) {
+            console.log('Could not restore music state');
+          }
+        }
+        return false;
+      }
+      
+      // Save state before page unload
+      window.addEventListener('beforeunload', saveMusicState);
+      window.addEventListener('pagehide', saveMusicState);
+      
+      // Intercept blog card clicks to ensure state is saved before navigation
+      document.querySelectorAll('.blog-card').forEach(card => {
+        card.addEventListener('click', (e) => {
+          e.preventDefault();
+          saveMusicState();
+          // Small delay to ensure localStorage write completes
+          setTimeout(() => {
+            window.location.href = card.href;
+          }, 50);
+        });
+      });
+      
+      // Save state on any other link click
+      document.addEventListener('click', (e) => {
+        const link = e.target.closest('a');
+        if (link && link.href && !link.href.startsWith('javascript:') && !link.classList.contains('blog-card')) {
+          saveMusicState();
+        }
+      }, true);
+      
+      // Periodically save state while playing (every 500ms for better accuracy)
+      setInterval(() => {
+        if (isPlaying) saveMusicState();
+      }, 500);
+      
+      // Initialize - try to restore state first
+      if (!restoreMusicState()) {
+        loadTrack(0);
+      }
+      updatePlaylistUI();
+      
+      // Expose functions globally for autoplay during loading
+      window.musicPlayer = {
+        playTrack: playTrack,
+        loadTrack: loadTrack,
+        playlist: playlist,
+        saveMusicState: saveMusicState
+      };
+    })();
+
     // Terminal Commands
     const terminalOutput = document.getElementById('terminalOutput');
     function addTerminalLine(text, type = '') {
@@ -1149,31 +2609,135 @@
     function initBackground() {
       const canvas = document.getElementById('canvas');
       const scene = new THREE.Scene();
-      const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-      const renderer = new THREE.WebGLRenderer({ canvas, alpha: true });
+      const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+      const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
       renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-      const geometry = new THREE.BufferGeometry();
-      const vertices = new Float32Array(2000 * 3);
-      for (let i = 0; i < 2000 * 3; i += 3) {
-        vertices[i] = (Math.random() - 0.5) * 1000;
-        vertices[i + 1] = (Math.random() - 0.5) * 1000;
-        vertices[i + 2] = (Math.random() - 0.5) * 1000;
+      // Layer 1: Dense star field (far background)
+      const starsGeometry = new THREE.BufferGeometry();
+      const starsCount = 3500;
+      const starsVertices = new Float32Array(starsCount * 3);
+      for (let i = 0; i < starsCount * 3; i += 3) {
+        starsVertices[i] = (Math.random() - 0.5) * 1800;
+        starsVertices[i + 1] = (Math.random() - 0.5) * 1800;
+        starsVertices[i + 2] = (Math.random() - 0.5) * 1800;
       }
-      geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
-
-      const material = new THREE.PointsMaterial({ 
-        color: 0x00d4aa, size: 2, transparent: true, opacity: 0.4 
+      starsGeometry.setAttribute('position', new THREE.BufferAttribute(starsVertices, 3));
+      const starsMaterial = new THREE.PointsMaterial({ 
+        color: 0x00d4aa, size: 1.5, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending
       });
-      const points = new THREE.Points(geometry, material);
-      scene.add(points);
+      const stars = new THREE.Points(starsGeometry, starsMaterial);
+      scene.add(stars);
 
-      camera.position.z = 150;
+      // Layer 2: Mid-field particles (purple tint)
+      const midGeometry = new THREE.BufferGeometry();
+      const midCount = 1500;
+      const midVertices = new Float32Array(midCount * 3);
+      for (let i = 0; i < midCount * 3; i += 3) {
+        midVertices[i] = (Math.random() - 0.5) * 1200;
+        midVertices[i + 1] = (Math.random() - 0.5) * 1200;
+        midVertices[i + 2] = (Math.random() - 0.5) * 1200;
+      }
+      midGeometry.setAttribute('position', new THREE.BufferAttribute(midVertices, 3));
+      const midMaterial = new THREE.PointsMaterial({ 
+        color: 0x6366f1, size: 2.2, transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending
+      });
+      const midPoints = new THREE.Points(midGeometry, midMaterial);
+      scene.add(midPoints);
 
+      // Layer 3: Close bright particles
+      const closeGeometry = new THREE.BufferGeometry();
+      const closeCount = 600;
+      const closeVertices = new Float32Array(closeCount * 3);
+      for (let i = 0; i < closeCount * 3; i += 3) {
+        closeVertices[i] = (Math.random() - 0.5) * 600;
+        closeVertices[i + 1] = (Math.random() - 0.5) * 600;
+        closeVertices[i + 2] = (Math.random() - 0.5) * 600;
+      }
+      closeGeometry.setAttribute('position', new THREE.BufferAttribute(closeVertices, 3));
+      const closeMaterial = new THREE.PointsMaterial({ 
+        color: 0xa855f7, size: 3, transparent: true, opacity: 0.45, blending: THREE.AdditiveBlending
+      });
+      const closePoints = new THREE.Points(closeGeometry, closeMaterial);
+      scene.add(closePoints);
+
+      // Floating cubes
+      const cubes = [];
+      const cubeCount = 28;
+      const cubeColors = [0x00d4aa, 0x6366f1, 0xa855f7, 0x22d3ee];
+      
+      for (let i = 0; i < cubeCount; i++) {
+        const size = Math.random() * 8 + 3;
+        const cubeGeometry = new THREE.BoxGeometry(size, size, size);
+        const edges = new THREE.EdgesGeometry(cubeGeometry);
+        const lineMaterial = new THREE.LineBasicMaterial({ 
+          color: cubeColors[Math.floor(Math.random() * cubeColors.length)], 
+          transparent: true, 
+          opacity: Math.random() * 0.3 + 0.15
+        });
+        const cube = new THREE.LineSegments(edges, lineMaterial);
+        
+        cube.position.x = (Math.random() - 0.5) * 800;
+        cube.position.y = (Math.random() - 0.5) * 800;
+        cube.position.z = (Math.random() - 0.5) * 800;
+        
+        cube.rotation.x = Math.random() * Math.PI;
+        cube.rotation.y = Math.random() * Math.PI;
+        
+        cube.userData = {
+          rotSpeedX: (Math.random() - 0.5) * 0.008,
+          rotSpeedY: (Math.random() - 0.5) * 0.008,
+          rotSpeedZ: (Math.random() - 0.5) * 0.004,
+          floatSpeed: Math.random() * 0.0015 + 0.0008,
+          floatOffset: Math.random() * Math.PI * 2,
+          driftX: (Math.random() - 0.5) * 0.08,
+          driftY: (Math.random() - 0.5) * 0.08
+        };
+        
+        cubes.push(cube);
+        scene.add(cube);
+      }
+
+      camera.position.z = 200;
+
+      let time = 0;
       function animate() {
         requestAnimationFrame(animate);
-        points.rotation.x += 0.0002;
-        points.rotation.y += 0.0003;
+        time += 0.016;
+        
+        // Rotate star layers at different speeds
+        stars.rotation.x += 0.00015;
+        stars.rotation.y += 0.00025;
+        
+        midPoints.rotation.x -= 0.0002;
+        midPoints.rotation.y += 0.00035;
+        midPoints.rotation.z += 0.0001;
+        
+        closePoints.rotation.x += 0.0003;
+        closePoints.rotation.y -= 0.0002;
+        
+        // Animate cubes
+        cubes.forEach((cube) => {
+          cube.rotation.x += cube.userData.rotSpeedX;
+          cube.rotation.y += cube.userData.rotSpeedY;
+          cube.rotation.z += cube.userData.rotSpeedZ;
+          
+          // Floating motion
+          cube.position.y += Math.sin(time * cube.userData.floatSpeed * 60 + cube.userData.floatOffset) * 0.08;
+          cube.position.x += cube.userData.driftX * 0.1;
+          
+          // Wrap around when out of bounds
+          if (cube.position.x > 450) cube.position.x = -450;
+          if (cube.position.x < -450) cube.position.x = 450;
+          if (cube.position.y > 450) cube.position.y = -450;
+          if (cube.position.y < -450) cube.position.y = 450;
+        });
+        
+        // Subtle camera sway
+        camera.position.x = Math.sin(time * 0.1) * 8;
+        camera.position.y = Math.cos(time * 0.08) * 5;
+        
         renderer.render(scene, camera);
       }
       animate();
@@ -1330,36 +2894,296 @@
 
     document.addEventListener('DOMContentLoaded', autoUpdateReposJSON);
 
+    // Mobile First-Time Hint Popup Logic
+    (function initMobileHint() {
+      const hintPopup = document.getElementById('mobileHintPopup');
+      const dismissBtn = document.getElementById('hintDismissBtn');
+      const mobileNav = document.getElementById('mobileNav');
+      
+      if (!hintPopup || !dismissBtn || !mobileNav) return;
+      
+      const hasSeenHint = localStorage.getItem('hasSeenMobileHint');
+      
+      function isMobile() {
+        return window.innerWidth <= 768;
+      }
+      
+      function showHint() {
+        if (!isMobile() || hasSeenHint) return;
+        hintPopup.classList.add('show');
+      }
+      
+      function hideHint() {
+        hintPopup.classList.add('hiding');
+        localStorage.setItem('hasSeenMobileHint', 'true');
+        setTimeout(() => {
+          hintPopup.classList.remove('show', 'hiding');
+        }, 300);
+      }
+      
+      // Show hint after a short delay on page load
+      if (isMobile() && !hasSeenHint) {
+        setTimeout(showHint, 1500);
+      }
+      
+      // Dismiss on button click
+      dismissBtn.addEventListener('click', hideHint);
+      
+      // Also dismiss when user opens the menu
+      mobileNav.addEventListener('click', () => {
+        if (hintPopup.classList.contains('show')) {
+          hideHint();
+        }
+      });
+      
+      // Handle resize - hide if switching to desktop
+      window.addEventListener('resize', () => {
+        if (!isMobile() && hintPopup.classList.contains('show')) {
+          hintPopup.classList.remove('show');
+        }
+      });
+    })();
+
+    // Music Hint Popup Logic - shows for all first-time visitors
+    (function initMusicHint() {
+      const musicHintPopup = document.getElementById('musicHintPopup');
+      const musicHintDismissBtn = document.getElementById('musicHintDismissBtn');
+      const musicToggle = document.getElementById('musicToggle');
+      
+      if (!musicHintPopup || !musicHintDismissBtn || !musicToggle) return;
+      
+      const hasSeenMusicHint = localStorage.getItem('hasSeenMusicHint');
+      
+      function showMusicHint() {
+        if (hasSeenMusicHint) return;
+        musicHintPopup.classList.add('show');
+      }
+      
+      function hideMusicHint() {
+        musicHintPopup.classList.add('hiding');
+        localStorage.setItem('hasSeenMusicHint', 'true');
+        setTimeout(() => {
+          musicHintPopup.classList.remove('show', 'hiding');
+        }, 250);
+      }
+      
+      // Show hint after a delay on page load
+      if (!hasSeenMusicHint) {
+        setTimeout(showMusicHint, 2500);
+      }
+      
+      // Dismiss on button click
+      musicHintDismissBtn.addEventListener('click', hideMusicHint);
+      
+      // Also dismiss when user clicks music toggle
+      musicToggle.addEventListener('click', () => {
+        if (musicHintPopup.classList.contains('show')) {
+          hideMusicHint();
+        }
+      });
+    })();
+
+    // toggle caret on about details for a smoother UX
+    (function wireAboutToggle(){
+      const about = document.getElementById('aboutMe');
+      if (!about) return;
+      about.addEventListener('toggle', ()=>{
+        // no-op: CSS handles caret rotation via attribute selector
+      });
+    })();
+
     initBackground();
 
-      // Loader logic
+    // --- Snake mini-game implementation (simple, self-contained) ---
+    let snakeAnim = null;
+    let snakeState = null;
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas ? canvas.getContext('2d') : null;
+    let gameMode = 'snake'; // only snake
+
+    function initSnakeState() {
+      if (!canvas) return;
+      // make canvas match CSS size
+      canvas.width = canvas.clientWidth || canvas.width;
+      canvas.height = canvas.clientHeight || canvas.height;
+      // compute cell size to get a reasonable grid density
+      const approxCols = Math.max(12, Math.min(36, Math.floor(canvas.width / 20)));
+      const cell = Math.max(8, Math.floor(canvas.width / approxCols));
+      const w = Math.floor(canvas.width / cell);
+      const h = Math.floor(canvas.height / cell);
+      snakeState = {
+        w, h, cell,
+        snake: [{x: Math.floor(w/2), y: Math.floor(h/2)}],
+        dir: {x:1,y:0},
+        food: null,
+        running: false,
+        speed: Math.max(5, Math.floor(7 * (canvas.width / 640))), // scale speed mildly
+        score: 0
+      };
+      placeFood();
+    }
+
+    // Tetris removed — snake-only game now
+
+    function updateHighScoreIfNeeded(mode, score){ const key = 'highscore_'+mode.toUpperCase(); const prev = parseInt(localStorage.getItem(key)||'0',10); if (score>prev){ localStorage.setItem(key, String(score)); updateHighScoreDisplay(); } }
+    function updateHighScoreDisplay(){ const key = 'highscore_SNAKE'; const v = localStorage.getItem(key)||'0'; const el = document.getElementById('gameHigh'); if (el) el.textContent = 'Best: '+v; }
+
+    function placeFood() {
+      const s = snakeState; if (!s) return;
+      let fx, fy; do { fx = Math.floor(Math.random()*s.w); fy = Math.floor(Math.random()*s.h); } while (s.snake.some(p=>p.x===fx && p.y===fy));
+      s.food = {x:fx,y:fy};
+    }
+
+    function drawSnake() {
+      const s = snakeState; if (!s || !ctx) return;
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      // background subtle grid
+      ctx.fillStyle = '#02040a'; ctx.fillRect(0,0,canvas.width,canvas.height);
+      // food
+      ctx.fillStyle = '#f59e0b'; ctx.fillRect(s.food.x*s.cell+2, s.food.y*s.cell+2, s.cell-4, s.cell-4);
+      // snake
+      ctx.fillStyle = '#00d4aa';
+      s.snake.forEach((seg,i)=>{
+        const x = seg.x*s.cell, y = seg.y*s.cell;
+        ctx.globalAlpha = 1 - (i / (s.snake.length+3))*0.5;
+        ctx.fillRect(x+1,y+1,s.cell-2,s.cell-2);
+      });
+      ctx.globalAlpha = 1;
+    }
+
+    function stepSnake() {
+      const s = snakeState; if (!s) return;
+      const head = s.snake[0];
+      const nx = (head.x + s.dir.x + s.w) % s.w;
+      const ny = (head.y + s.dir.y + s.h) % s.h;
+      // collision with self?
+      if (s.snake.some(p=>p.x===nx && p.y===ny)) { s.running=false; return; }
+      s.snake.unshift({x:nx,y:ny});
+      if (nx===s.food.x && ny===s.food.y) { s.score+=1; placeFood(); } else { s.snake.pop(); }
+      drawSnake();
+      if (scoreEl) scoreEl.textContent = 'Score: ' + s.score;
+    }
+
+    function snakeLoop() {
+      const s = snakeState; if (!s) return;
+      const fps = s.speed; const interval = 1000 / fps;
+      let last = performance.now();
+      function loop(now){
+        if (!s.running) return; if (now - last >= interval) { stepSnake(); last = now; }
+        snakeAnim = requestAnimationFrame(loop);
+      }
+      snakeAnim = requestAnimationFrame(loop);
+    }
+
+    function startSnake() { if (!canvas) return; initSnakeState(); snakeState.running=true; snakeLoop(); updateHighScoreDisplay(); }
+    function stopSnake() { if (snakeAnim) cancelAnimationFrame(snakeAnim); if (snakeState) snakeState.running=false; }
+    function restartSnake() { stopSnake(); initSnakeState(); startSnake(); }
+
+    // keyboard controls
+    window.addEventListener('keydown', (e)=>{
+      if (!snakeState || !snakeState.running) return;
+      const k = e.key;
+      if (k === 'ArrowUp' && snakeState.dir.y !== 1) snakeState.dir = {x:0,y:-1};
+      if (k === 'ArrowDown' && snakeState.dir.y !== -1) snakeState.dir = {x:0,y:1};
+      if (k === 'ArrowLeft' && snakeState.dir.x !== 1) snakeState.dir = {x:-1,y:0};
+      if (k === 'ArrowRight' && snakeState.dir.x !== -1) snakeState.dir = {x:1,y:0};
+    });
+
+    // touch & on-screen button controls for mobile
+    function setSnakeDir(dx, dy) {
+      if (gameMode === 'snake') {
+        if (!snakeState) return;
+        if (snakeState.dir.x === -dx && snakeState.dir.y === -dy) return;
+        snakeState.dir = {x: dx, y: dy};
+      }
+    }
+
+    function wireTouchButtons() {
+      const ids = ['btnUp','btnLeft','btnDown','btnRight'];
+      const mapping = { btnUp: [0,-1], btnDown: [0,1], btnLeft: [-1,0], btnRight: [1,0] };
+      ids.forEach(id => {
+        const b = document.getElementById(id);
+        if (!b) return;
+        ['touchstart','mousedown','click'].forEach(ev => b.addEventListener(ev, (e)=>{ e.preventDefault(); const d = mapping[id]; setSnakeDir(d[0], d[1]); }));
+      });
+    }
+
+    // no tetris keyboard handler (snake uses its own handler above)
+
+    // swipe detection on canvas
+    (function enableSwipe(){
+      if (!canvas) return;
+      let sx=0, sy=0;
+      canvas.addEventListener('touchstart', (e)=>{ const t=e.touches[0]; sx=t.clientX; sy=t.clientY; }, {passive:true});
+      canvas.addEventListener('touchend', (e)=>{
+        const t = e.changedTouches[0]; const dx = t.clientX - sx; const dy = t.clientY - sy;
+        if (Math.abs(dx) < 20 && Math.abs(dy) < 20) return;
+        if (Math.abs(dx) > Math.abs(dy)) { if (dx>0) setSnakeDir(1,0); else setSnakeDir(-1,0); }
+        else { if (dy>0) setSnakeDir(0,1); else setSnakeDir(0,-1); }
+      }, {passive:true});
+    })();
+
+    // wire touch buttons after DOM modifications
+    setTimeout(wireTouchButtons, 60);
+
+    // expose controls used by modal wiring
+    window.startSnake = startSnake; window.stopSnake = stopSnake; window.restartSnake = restartSnake;
+    // restart button
+    document.getElementById('restartGame')?.addEventListener('click', ()=>{ restartSnake(); });
+
+      // Loader logic - only show for first-time visitors
   (function () {
     const loader = document.getElementById('loader');
     if (!loader) return;
 
-    const lines = Array.from(loader.querySelectorAll('.loader-line'));
-    const bar = loader.querySelector('.loader-progress-bar');
+    // Check if user has seen the loader before
+    const hasSeenLoader = localStorage.getItem('hasSeenLoader');
+    if (hasSeenLoader) {
+      loader.classList.add('hidden');
+      return;
+    }
 
-    let idx = 0;
+    const bar = loader.querySelector('.loader-progress-bar');
     let progress = 0;
-    const step = 100 / (lines.length + 2);
     const minShowTime = 1100;   // ms minimum
     const maxShowTime = 2200;   // hard cap
     const startTime = performance.now();
 
-    function activateNextLine() {
-      if (idx < lines.length) {
-        lines[idx].classList.add('active');
-        idx++;
-        progress = Math.min(100, progress + step);
-        if (bar) bar.style.width = progress + '%';
-      }
-    }
+    // build requester info and replace loader messages
+    try {
+      const info = [];
+      const ua = navigator.userAgent || 'unknown';
+      info.push(['Browser', ua.split(') ')[0] + ')']);
+      info.push(['Platform', navigator.platform || 'unknown']);
+      info.push(['Language', navigator.language || navigator.userLanguage || 'unknown']);
+      try { info.push(['Timezone', Intl.DateTimeFormat().resolvedOptions().timeZone || 'unknown']); } catch(e){ info.push(['Timezone','unknown']); }
+      if (navigator.deviceMemory) info.push(['Device RAM', navigator.deviceMemory + ' GB']);
+      if (navigator.hardwareConcurrency) info.push(['CPU cores', navigator.hardwareConcurrency]);
+      const conn = (navigator.connection && (navigator.connection.effectiveType || navigator.connection.type)) || null;
+      if (conn) info.push(['Connection', conn]);
+      info.push(['Cookies', navigator.cookieEnabled ? 'enabled' : 'disabled']);
+      info.push(['Touch', (('ontouchstart' in window) || (navigator.maxTouchPoints && navigator.maxTouchPoints>0)) ? 'yes' : 'no']);
 
-    const lineTimer = setInterval(() => {
-      activateNextLine();
-      if (idx >= lines.length) clearInterval(lineTimer);
-    }, 210);
+      const container = loader.querySelector('#loaderInfo');
+      if (container) {
+        container.innerHTML = '';
+        info.forEach((pair, i) => {
+          const div = document.createElement('div');
+          div.className = 'loader-line' + (i===0 ? ' active' : '');
+          div.textContent = `${pair[0]}: ${pair[1]}`;
+          container.appendChild(div);
+        });
+      }
+    } catch (e) { /* ignore */ }
+
+    // animate progress bar smoothly until finish
+    const progressTicker = setInterval(()=>{
+      const elapsed = performance.now() - startTime;
+      const pct = Math.min(100, (elapsed / maxShowTime) * 100);
+      progress = pct;
+      if (bar) bar.style.width = Math.round(progress) + '%';
+      if (elapsed >= maxShowTime) clearInterval(progressTicker);
+    }, 80);
 
     function finishLoader() {
       const elapsed = performance.now() - startTime;
@@ -1368,6 +3192,8 @@
         if (bar) bar.style.width = '100%';
         setTimeout(() => {
           loader.classList.add('hidden');
+          // Mark that user has seen the loader
+          localStorage.setItem('hasSeenLoader', 'true');
         }, 260);
       }, remaining);
     }
