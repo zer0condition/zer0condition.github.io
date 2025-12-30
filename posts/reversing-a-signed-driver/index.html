@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reversing a Signed Kernel Driver | zer0condition</title>
+  <meta name="description" content="A deep dive into reverse engineering a VMProtect-protected signed kernel driver, exploring obfuscation techniques and driver internals.">
+  <link rel="icon" type="image/png" href="https://avatars.githubusercontent.com/u/70964202?v=4">
+  <link rel="apple-touch-icon" href="https://avatars.githubusercontent.com/u/70964202?v=4">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    :root {
+      --bg-primary: #0d1117;
+      --bg-secondary: #161b22;
+      --primary: #00d4aa;
+      --text-primary: #e6edf3;
+      --text-secondary: #8b949e;
+      --border: rgba(255,255,255,0.08);
+      --card-bg: rgba(255,255,255,0.02);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      line-height: 1.7;
+      min-height: 100vh;
+    }
+
+    /* Smooth entrance animations */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes slideInLeft {
+      from {
+        opacity: 0;
+        transform: translateX(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .back-btn {
+      animation: slideInLeft 0.5s ease 0.2s both;
+      position: fixed;
+      top: 24px;
+      left: 24px;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px;
+      background: rgba(0,0,0,0.4);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text-primary);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.9rem;
+      transition: all 0.25s ease;
+    }
+
+    .back-btn:hover {
+      background: rgba(0,212,170,0.1);
+      border-color: var(--primary);
+      color: var(--primary);
+      transform: translateX(-4px);
+    }
+
+    .blog-container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 100px 24px 60px;
+    }
+
+    .blog-header {
+      margin-bottom: 48px;
+      padding-bottom: 32px;
+      border-bottom: 1px solid var(--border);
+      animation: fadeInUp 0.6s ease both;
+    }
+
+    .blog-content h1 { animation: fadeInUp 0.5s ease both; }
+    .blog-content h2 { animation: fadeInUp 0.5s ease both; }
+    .blog-content h3 { animation: fadeInUp 0.5s ease both; }
+    .blog-content h4 { animation: fadeInUp 0.5s ease both; }
+    .blog-content p { animation: fadeIn 0.6s ease both; }
+    .blog-content img { animation: fadeInUp 0.7s ease both; transition: transform 0.3s ease, box-shadow 0.3s ease; }
+    .blog-content img:hover { transform: scale(1.02); box-shadow: 0 16px 48px rgba(0,212,170,0.15); }
+    .blog-content ul, .blog-content ol { animation: fadeIn 0.5s ease both; }
+    .blog-footer { animation: fadeInUp 0.6s ease 0.3s both; }
+    .blog-tag { transition: transform 0.2s ease, background 0.2s ease; }
+    .blog-tag:hover { transform: translateY(-2px); background: rgba(99,102,241,0.2); }
+    .repo-link { transition: all 0.3s cubic-bezier(.25,.46,.45,.94); }
+
+    .blog-meta {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .blog-meta-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .blog-meta-item i {
+      color: var(--primary);
+      font-size: 0.8rem;
+    }
+
+    .blog-title {
+      font-size: 2.5rem;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 20px;
+      background: linear-gradient(135deg, var(--text-primary), var(--primary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .blog-subtitle {
+      font-size: 1.15rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .blog-tags {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+
+    .blog-tag {
+      background: rgba(99,102,241,0.12);
+      color: #a5b4fc;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      border: 1px solid rgba(99,102,241,0.2);
+    }
+
+    .blog-content h1 {
+      font-size: 1.9rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin: 48px 0 20px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid rgba(0,212,170,0.2);
+    }
+
+    .blog-content h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 40px 0 16px;
+    }
+
+    .blog-content h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 32px 0 14px;
+    }
+
+    .blog-content h4 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--primary);
+      margin: 24px 0 12px;
+    }
+
+    .blog-content p {
+      color: var(--text-secondary);
+      margin-bottom: 18px;
+      font-size: 1.02rem;
+    }
+
+    .blog-content ul, .blog-content ol {
+      margin: 16px 0 24px 24px;
+      color: var(--text-secondary);
+    }
+
+    .blog-content li {
+      margin-bottom: 10px;
+      font-size: 1rem;
+    }
+
+    .blog-content a {
+      color: var(--primary);
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.2s ease;
+    }
+
+    .blog-content a:hover {
+      border-bottom-color: var(--primary);
+    }
+
+    .blog-content img {
+      max-width: 100%;
+      border-radius: 12px;
+      margin: 24px 0;
+      border: 1px solid var(--border);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+
+    .blog-content b, .blog-content strong {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .info-box {
+      background: linear-gradient(135deg, rgba(0,212,170,0.08), rgba(99,102,241,0.06));
+      border: 1px solid rgba(0,212,170,0.2);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin: 24px 0;
+    }
+
+    .info-box p {
+      margin: 0;
+      color: var(--text-primary);
+    }
+
+    .image-row {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin: 24px 0;
+    }
+
+    .image-row img {
+      flex: 1;
+      min-width: 150px;
+      max-width: 200px;
+      margin: 0;
+    }
+
+    .blog-footer {
+      margin-top: 64px;
+      padding-top: 32px;
+      border-top: 1px solid var(--border);
+    }
+
+    .repo-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 24px;
+      background: linear-gradient(135deg, rgba(0,212,170,0.12), rgba(99,102,241,0.08));
+      border: 1px solid rgba(0,212,170,0.25);
+      border-radius: 12px;
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.25s ease;
+      margin-right: 12px;
+      margin-bottom: 12px;
+    }
+
+    .repo-link:hover {
+      background: linear-gradient(135deg, rgba(0,212,170,0.2), rgba(99,102,241,0.14));
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,212,170,0.15);
+    }
+
+    .footer-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-top: 32px;
+    }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text-primary);
+      text-decoration: none;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .nav-link:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .warning-box {
+      background: linear-gradient(135deg, rgba(245,158,11,0.1), rgba(239,68,68,0.08));
+      border: 1px solid rgba(245,158,11,0.3);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin: 24px 0;
+    }
+
+    .warning-box p {
+      margin: 0;
+      color: #fbbf24;
+    }
+
+    @media (max-width: 768px) {
+      .back-btn {
+        top: 16px;
+        left: 16px;
+        padding: 10px 16px;
+        font-size: 0.85rem;
+      }
+
+      .blog-container {
+        padding: 80px 16px 40px;
+      }
+
+      .blog-title {
+        font-size: 1.8rem;
+      }
+
+      .blog-content h1 {
+        font-size: 1.5rem;
+      }
+
+      .blog-content h2 {
+        font-size: 1.3rem;
+      }
+
+      .footer-nav {
+        flex-direction: column;
+      }
+
+      .nav-link {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .image-row {
+        flex-direction: column;
+      }
+
+      .image-row img {
+        max-width: 100%;
+      }
+
+      .music-toggle { right: 20px; bottom: 20px; }
+      .music-volume { display: none; }
+    }
+
+    /* Music Player Styles */
+    .music-toggle {
+      position: fixed;
+      right: 24px; bottom: 24px;
+      background: var(--card-bg);
+      color: var(--primary);
+      border: 2px solid var(--border);
+      backdrop-filter: blur(18px);
+      z-index: 260;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.28);
+      transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+      width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+    }
+    .music-toggle:hover { transform: scale(1.06); box-shadow: 0 10px 36px rgba(0,0,0,0.32); background: rgba(0,212,170,0.06); }
+    .music-toggle.playing i { animation: musicIconSpin 2s linear infinite; }
+    .music-toggle.playing { border-color: var(--primary); box-shadow: 0 0 20px rgba(0,212,170,0.3); }
+    @keyframes musicIconSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    .music-modal { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 1000; }
+    .music-modal.active { display: flex; }
+    .music-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
+    .music-window { 
+      position: relative; z-index: 1; 
+      width: min(380px, 90vw); 
+      border-radius: 16px; 
+      padding: 24px; 
+      background: rgba(18, 18, 28, 0.06);
+      backdrop-filter: blur(20px) saturate(120%); 
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.03) inset;
+      border: 1px solid rgba(255,255,255,0.04);
+    }
+    .music-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .music-title { font-weight: 600; color: var(--text-primary); font-size: 1rem; }
+    .btn-small { padding: 8px 12px; border-radius: 8px; background: var(--card-bg); border: 1px solid var(--border); color: var(--text-primary); cursor: pointer; }
+    
+    .music-artwork {
+      width: 100%; aspect-ratio: 1; max-width: 180px; margin: 0 auto 20px;
+      border-radius: 12px; background: rgba(0,212,170,0.06); border: 1px solid rgba(255,255,255,0.04);
+      display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;
+    }
+    .music-artwork i { font-size: 3.5rem; color: var(--primary); opacity: 0.5; }
+    .music-artwork.playing i { animation: musicPulse 1s ease-in-out infinite; }
+    @keyframes musicPulse { 0%, 100% { transform: scale(1); opacity: 0.5; } 50% { transform: scale(1.1); opacity: 0.7; } }
+    
+    .music-info { text-align: center; margin-bottom: 16px; }
+    .music-track-name { color: var(--text-primary); font-weight: 600; font-size: 1rem; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .music-track-artist { color: var(--text-secondary); font-size: 0.8rem; }
+    
+    .music-progress { margin-bottom: 16px; }
+    .music-progress-bar { width: 100%; height: 3px; background: rgba(255,255,255,0.06); border-radius: 2px; cursor: pointer; position: relative; overflow: hidden; }
+    .music-progress-fill { height: 100%; background: var(--primary); border-radius: 2px; width: 0%; transition: width 0.1s linear; }
+    .music-time { display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-secondary); margin-top: 6px; opacity: 0.8; }
+    
+    .music-controls { display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 16px; }
+    .music-btn { width: 38px; height: 38px; border-radius: 50%; background: transparent; border: 1px solid rgba(255,255,255,0.08); color: var(--text-primary); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; }
+    .music-btn:hover { border-color: var(--primary); color: var(--primary); background: rgba(0,212,170,0.06); }
+    .music-btn.play-btn { width: 52px; height: 52px; background: rgba(0,212,170,0.15); border: 1px solid var(--primary); color: var(--primary); }
+    .music-btn.play-btn:hover { transform: scale(1.05); background: rgba(0,212,170,0.25); box-shadow: 0 0 20px rgba(0,212,170,0.2); }
+    
+    .music-volume { display: flex; align-items: center; gap: 10px; padding: 0 8px; margin-bottom: 12px; }
+    .music-volume i { color: var(--text-secondary); font-size: 0.85rem; opacity: 0.7; }
+    .music-volume-slider { flex: 1; height: 3px; -webkit-appearance: none; appearance: none; background: rgba(255,255,255,0.06); border-radius: 2px; cursor: pointer; }
+    .music-volume-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 10px; height: 10px; background: var(--primary); border-radius: 50%; cursor: pointer; }
+    
+    .music-playlist { max-height: 140px; overflow-y: auto; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 10px; margin-top: 10px; }
+    .music-playlist-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; color: var(--text-secondary); font-size: 0.8rem; }
+    .music-playlist-item:hover { background: rgba(255,255,255,0.03); color: var(--text-primary); }
+    .music-playlist-item.active { background: rgba(0,212,170,0.08); color: var(--primary); }
+    .music-playlist-item i { font-size: 0.7rem; }
+  </style>
+</head>
+<body>
+  <a href="../../index.html#blog" class="back-btn">
+    <i class="fas fa-arrow-left"></i>
+    <span>Back</span>
+  </a>
+
+  <div class="blog-container">
+    <header class="blog-header">
+      <div class="blog-meta">
+        <span class="blog-meta-item"><i class="fas fa-calendar"></i> April 14, 2023</span>
+        <span class="blog-meta-item"><i class="fas fa-clock"></i> ~20 min read</span>
+        <span class="blog-meta-item"><i class="fas fa-user"></i> zer0condition</span>
+      </div>
+      <h1 class="blog-title">Reverse Engineering a Signed Kernel Driver ft. VMProtect</h1>
+      <p class="blog-subtitle">A deep dive into cracking a protected kernel driver, exploring VMProtect obfuscation techniques and methods to analyze signed drivers through practical reverse engineering.</p>
+      <div class="blog-tags">
+        <span class="blog-tag">VMProtect</span>
+        <span class="blog-tag">Kernel Driver</span>
+        <span class="blog-tag">Reverse Engineering</span>
+        <span class="blog-tag">Malware Analysis</span>
+      </div>
+    </header>
+
+    <article class="blog-content">
+      <h1>Introduction</h1>
+      <p>Recently, I was approached by a discord user who requested that I crack a pay-to-cheat service which I will not name, as he had been banned by them after experiencing some difficulties while attempting to use their services. Although initially hesitant, my boredom got the better of me, and I decided to take a look.</p>
+      
+      <p>I was not surprised to find that the loader had been packed and virtualized using one of the latest <b>VMProtect3</b> versions, which made things a bit more complicated. However, through dynamic analysis, I discovered a binary being dropped to disk on my C:\Windows\System32 directory. I expected this to be an executable, but it had a .sys extension and was called <b>'winhelper.sys'</b>.</p>
+      
+      <p>Upon closer inspection, I found the driver's size to be around 2MB, which is unusual for drivers, and its digital certificate had been signed with a revoked/expired EV certificate from a Chinese company called <b>'Binzhoushi Yongyu Feed Co.,LTd.'</b></p>
+      
+      <img src="https://i.imgur.com/J8wchy4.png" alt="Driver Certificate" style="max-width: 70%;">
+
+      <h1>Investigation</h1>
+      <p>Further investigation revealed that the driver's timestamp was from 2015, which was unusual. I decided to load the driver into IDA and found that it had been packed and virtualized with VMProtect3 once again.</p>
+      
+      <img src="https://i.imgur.com/YNXvkUv.png" alt="IDA Analysis" style="max-width: 70%;">
+      
+      <p>Unfortunately, the entry point was virtualized, so I had to enlist the help of a friend to devirtualize the binary using specialized tools. After obtaining the devirtualized binary, I delved further into the driver's internals and discovered that it used I/Os for communication, which is not out of the ordinary.</p>
+      
+      <p>Eventually, I found the driver object's reference, followed a sub-function, and located the IRP/Dispatch handler of the driver.</p>
+      
+      <div class="image-row">
+        <img src="https://i.imgur.com/9KGoS40.png" alt="Driver Object">
+        <img src="https://i.imgur.com/KxgaJws.png" alt="IRP Handler">
+      </div>
+      
+      <p>While the functionality wasn't too complicated, the control code passed through the stack location was "encrypted" with some XOR and bitwise operations. The driver controller example program explains how it works.</p>
+      
+      <img src="https://i.imgur.com/wf64H8f.png" alt="Control Code Decryption">
+
+      <h1>IOCTLs and Functionalities</h1>
+      <p>I decided to look into the functionalities of the drivers and their control codes.</p>
+
+      <h4>GetProcessBaseAddress (0x13370400)</h4>
+      <p>This was the first ioctl code I came across, which uses a structure with two variables sent through the IRP SystemBuffer. A buffer is returned to the usermode after the request. It takes a process id integer parameter, which is used for <b>PsLookupProcessByProcessId()</b> to get the EPROCESS of the target process and passed into <b>PsGetProcessSectionBaseAddress()</b>, which returns the SectionBaseAddress of the EPROCESS. The base address is then accessed from the usermode with the second variable inside the structure.</p>
+      
+      <img src="https://i.imgur.com/aoIwRT3.png" alt="GetProcessBaseAddress">
+
+      <h4>ReadProcessMemory (0x13370800)</h4>
+      <p>This was the second ioctl code found. It also uses a structure passed from the SystemBuffer but of a different size, containing an int, uintptr_t, uintptr_t and size_t respectively. The first parameter was later found out to be a process id passed from the usermode request, the second is the source address, the third is the buffer, and lastly, the size.</p>
+      
+      <img src="https://i.imgur.com/jevpmlw.png" alt="ReadProcessMemory">
+      
+      <p>Further analysis uncovered the purpose of the two function calls. The first function call sets up the functions required for reading/writing process memory:</p>
+      
+      <img src="https://i.imgur.com/AUBnFlN.png" alt="Setup Functions">
+      <img src="https://i.imgur.com/fH2jbOh.png" alt="Function Details">
+      
+      <p>The second function call reads the process memory through physical memory. It takes the source address, buffer, size, and a variable that returns a value but is not used further:</p>
+      
+      <img src="https://i.imgur.com/q0O8EwJ.png" alt="Read Function">
+      
+      <p>Taking a look inside the function, there is nothing that complicated; it takes the virtual address passed and converts it into a physical address (linear translation) and is used in <b>MmCopyMemory</b> for reading the process memory.</p>
+      
+      <img src="https://i.imgur.com/ozft12C.png" alt="Physical Memory Read">
+
+      <h4>WriteProcessMemory (0x13370C00)</h4>
+      <p>This was the final code found, which is for writing process memory. It takes a structure of the same size as the ReadProcessMemory with the same variables. The same function called before in the read request handler sets up the write function to be used, and the write function itself is called after that.</p>
+      
+      <img src="https://i.imgur.com/hcenajT.png" alt="WriteProcessMemory">
+      
+      <p>The write function takes the virtual address passed and converts it into a physical address (linear translation) and is used in <b>MmMapIoSpaceEx</b> for writing/mapping values to the process memory.</p>
+      
+      <img src="https://i.imgur.com/rYDFhhl.png" alt="Write Function 1">
+      <img src="https://i.imgur.com/sbVJfYw.png" alt="Write Function 2">
+
+      <h1>Conclusion</h1>
+      <p>Overall, reverse engineering the signed kernel driver was an interesting and challenging task. It involved dynamic analysis, devirtualization, and investigation into the driver's internals to uncover its functionalities and control codes.</p>
+      
+      <div class="warning-box">
+        <p><i class="fas fa-exclamation-triangle"></i> <strong>Disclaimer:</strong> It's important to note that reverse engineering and cracking software without permission is illegal and can have severe consequences. As such, it's crucial to always act ethically and with integrity when dealing with software and its security.</p>
+      </div>
+      
+      <p>After digging deeper, the reason this revoked certificate could be loaded leads to a Chinese tool called <b>'HookSigntool'</b>.</p>
+    </article>
+
+    <footer class="blog-footer">
+      <div style="margin-bottom: 24px;">
+        <a href="https://github.com/Jemmy1228/HookSigntool" target="_blank" class="repo-link">
+          <i class="fab fa-github"></i>
+          <span>HookSignTool</span>
+        </a>
+        <a href="https://www.github.com/zer0condition/Reversing-a-signed-driver" target="_blank" class="repo-link">
+          <i class="fab fa-github"></i>
+          <span>View Full Repository</span>
+        </a>
+      </div>
+
+      <p style="color: var(--text-secondary); font-size: 0.95rem;">The repository contains the signed binary along with an example program on how to send requests to this driver and technically use it.</p>
+
+      <div class="footer-nav">
+        <a href="../../index.html#blog" class="nav-link">
+          <i class="fas fa-arrow-left"></i>
+          <span>Back to Blog</span>
+        </a>
+        <a href="../demystifying-patchguard/index.html" class="nav-link">
+          <span>Next: Demystifying PatchGuard</span>
+          <i class="fas fa-arrow-right"></i>
+        </a>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Music Toggle Button -->
+  <div class="music-toggle" id="musicToggle" title="Music Player">
+    <i class="fas fa-music"></i>
+  </div>
+
+  <!-- Music Player Modal -->
+  <div class="music-modal" id="musicModal" aria-hidden="true">
+    <div class="music-backdrop" id="musicBackdrop"></div>
+    <div class="music-window" role="dialog" aria-label="Music Player">
+      <div class="music-header">
+        <div class="music-title">Music</div>
+        <button class="btn-small" id="closeMusic">Close</button>
+      </div>
+      <div class="music-artwork" id="musicArtwork">
+        <i class="fas fa-compact-disc"></i>
+      </div>
+      <div class="music-info">
+        <div class="music-track-name" id="musicTrackName">No track loaded</div>
+        <div class="music-track-artist" id="musicTrackArtist">Add songs to /songs folder</div>
+      </div>
+      <div class="music-progress">
+        <div class="music-progress-bar" id="musicProgressBar">
+          <div class="music-progress-fill" id="musicProgressFill"></div>
+        </div>
+        <div class="music-time">
+          <span id="musicCurrentTime">0:00</span>
+          <span id="musicDuration">0:00</span>
+        </div>
+      </div>
+      <div class="music-controls">
+        <button class="music-btn" id="musicPrev" title="Previous"><i class="fas fa-backward"></i></button>
+        <button class="music-btn play-btn" id="musicPlayPause" title="Play/Pause"><i class="fas fa-play"></i></button>
+        <button class="music-btn" id="musicNext" title="Next"><i class="fas fa-forward"></i></button>
+      </div>
+      <div class="music-volume">
+        <i class="fas fa-volume-down"></i>
+        <input type="range" class="music-volume-slider" id="musicVolume" min="0" max="100" value="80">
+        <i class="fas fa-volume-up"></i>
+      </div>
+      <div class="music-playlist" id="musicPlaylist"></div>
+    </div>
+  </div>
+
+  <script>
+    // Music Player for Blog Posts
+    (function initMusicPlayer() {
+      const musicModal = document.getElementById('musicModal');
+      const musicBackdrop = document.getElementById('musicBackdrop');
+      const closeMusic = document.getElementById('closeMusic');
+      const musicArtwork = document.getElementById('musicArtwork');
+      const musicTrackName = document.getElementById('musicTrackName');
+      const musicTrackArtist = document.getElementById('musicTrackArtist');
+      const musicProgressBar = document.getElementById('musicProgressBar');
+      const musicProgressFill = document.getElementById('musicProgressFill');
+      const musicCurrentTime = document.getElementById('musicCurrentTime');
+      const musicDuration = document.getElementById('musicDuration');
+      const musicPlayPause = document.getElementById('musicPlayPause');
+      const musicPrev = document.getElementById('musicPrev');
+      const musicNext = document.getElementById('musicNext');
+      const musicVolume = document.getElementById('musicVolume');
+      const musicPlaylist = document.getElementById('musicPlaylist');
+      const musicToggle = document.getElementById('musicToggle');
+      
+      if (!musicModal) return;
+      
+      let audio = new Audio();
+      let isPlaying = false;
+      let currentTrack = 0;
+      
+      // Path to songs folder (relative from blog post)
+      const basePath = '../../songs/';
+      
+      const playlist = [
+        { name: 'Critical Acclaim', artist: 'Avenged Sevenfold', src: basePath + 'Avenged Sevenfold -Critical Acclaim.mp3' },
+        { name: 'Carry on Wayward Son', artist: 'Kansas', src: basePath + 'Kansas -Carry on Wayward Son.mp3' },
+        { name: 'Holy Wars', artist: 'Megadeth', src: basePath + 'Megadeth -Holy Wars.mp3' },
+        { name: 'Ride The Lightning', artist: 'Metallica', src: basePath + 'Metallica -Ride The Lightning.mp3' },
+        { name: 'Cowboys from Hell', artist: 'Pantera', src: basePath + 'Pantera -Cowboys from Hell.mp3' },
+      ];
+      
+      function formatTime(seconds) {
+        if (isNaN(seconds)) return '0:00';
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+      }
+      
+      function updatePlaylistUI() {
+        musicPlaylist.innerHTML = '';
+        playlist.forEach((track, index) => {
+          if (!track.src) return;
+          const item = document.createElement('div');
+          item.className = 'music-playlist-item' + (index === currentTrack ? ' active' : '');
+          item.innerHTML = `<i class="fas ${index === currentTrack && isPlaying ? 'fa-pause' : 'fa-play'}"></i> ${track.name}`;
+          item.addEventListener('click', () => {
+            currentTrack = index;
+            loadTrack(currentTrack);
+            playTrack();
+          });
+          musicPlaylist.appendChild(item);
+        });
+      }
+      
+      function loadTrack(index) {
+        const track = playlist[index];
+        if (!track || !track.src) {
+          musicTrackName.textContent = 'No track loaded';
+          musicTrackArtist.textContent = 'Add songs to /songs folder';
+          return;
+        }
+        audio.src = track.src;
+        musicTrackName.textContent = track.name;
+        musicTrackArtist.textContent = track.artist;
+        updatePlaylistUI();
+      }
+      
+      function playTrack() {
+        if (!audio.src || audio.src === window.location.href) return;
+        audio.play();
+        isPlaying = true;
+        musicPlayPause.innerHTML = '<i class="fas fa-pause"></i>';
+        musicArtwork.classList.add('playing');
+        if (musicToggle) musicToggle.classList.add('playing');
+        updatePlaylistUI();
+      }
+      
+      function pauseTrack() {
+        audio.pause();
+        isPlaying = false;
+        musicPlayPause.innerHTML = '<i class="fas fa-play"></i>';
+        musicArtwork.classList.remove('playing');
+        if (musicToggle) musicToggle.classList.remove('playing');
+        updatePlaylistUI();
+      }
+      
+      function togglePlay() {
+        if (isPlaying) pauseTrack();
+        else playTrack();
+      }
+      
+      function nextTrack() {
+        currentTrack = (currentTrack + 1) % playlist.length;
+        loadTrack(currentTrack);
+        playTrack();
+      }
+      
+      function prevTrack() {
+        currentTrack = (currentTrack - 1 + playlist.length) % playlist.length;
+        loadTrack(currentTrack);
+        playTrack();
+      }
+      
+      audio.addEventListener('timeupdate', () => {
+        const progress = (audio.currentTime / audio.duration) * 100;
+        musicProgressFill.style.width = progress + '%';
+        musicCurrentTime.textContent = formatTime(audio.currentTime);
+      });
+      
+      audio.addEventListener('loadedmetadata', () => {
+        musicDuration.textContent = formatTime(audio.duration);
+      });
+      
+      audio.addEventListener('ended', nextTrack);
+      
+      musicProgressBar.addEventListener('click', (e) => {
+        const rect = musicProgressBar.getBoundingClientRect();
+        const percent = (e.clientX - rect.left) / rect.width;
+        audio.currentTime = percent * audio.duration;
+      });
+      
+      audio.volume = 0.8;
+      musicVolume.addEventListener('input', (e) => {
+        audio.volume = e.target.value / 100;
+      });
+      
+      musicPlayPause.addEventListener('click', togglePlay);
+      musicNext.addEventListener('click', nextTrack);
+      musicPrev.addEventListener('click', prevTrack);
+      
+      function openMusicModal() {
+        musicModal.classList.add('active');
+        musicModal.setAttribute('aria-hidden', 'false');
+        updatePlaylistUI();
+      }
+      
+      function closeMusicModal() {
+        musicModal.classList.remove('active');
+        musicModal.setAttribute('aria-hidden', 'true');
+      }
+      
+      if (musicToggle) musicToggle.addEventListener('click', openMusicModal);
+      if (closeMusic) closeMusic.addEventListener('click', closeMusicModal);
+      if (musicBackdrop) musicBackdrop.addEventListener('click', closeMusicModal);
+      
+      // Cross-page persistence
+      function saveMusicState() {
+        const state = {
+          track: currentTrack,
+          time: audio.currentTime,
+          playing: isPlaying,
+          volume: audio.volume
+        };
+        localStorage.setItem('musicState', JSON.stringify(state));
+      }
+      
+      function restoreMusicState() {
+        const saved = localStorage.getItem('musicState');
+        if (saved) {
+          try {
+            const state = JSON.parse(saved);
+            currentTrack = state.track || 0;
+            const track = playlist[currentTrack];
+            if (!track || !track.src) return false;
+            
+            audio.preload = 'auto';
+            audio.src = track.src;
+            audio.volume = state.volume || 0.8;
+            if (musicVolume) musicVolume.value = audio.volume * 100;
+            
+            musicTrackName.textContent = track.name;
+            musicTrackArtist.textContent = track.artist;
+            
+            const resumePlayback = () => {
+              audio.currentTime = state.time || 0;
+              if (state.playing) {
+                const playPromise = audio.play();
+                if (playPromise) {
+                  playPromise.then(() => {
+                    isPlaying = true;
+                    musicPlayPause.innerHTML = '<i class="fas fa-pause"></i>';
+                    musicArtwork.classList.add('playing');
+                    if (musicToggle) musicToggle.classList.add('playing');
+                    updatePlaylistUI();
+                  }).catch(() => {
+                    // Autoplay blocked - wait for user interaction
+                    const resumeOnInteraction = () => {
+                      if (!isPlaying && state.playing) {
+                        audio.play().then(() => {
+                          isPlaying = true;
+                          musicPlayPause.innerHTML = '<i class="fas fa-pause"></i>';
+                          musicArtwork.classList.add('playing');
+                          if (musicToggle) musicToggle.classList.add('playing');
+                          updatePlaylistUI();
+                        }).catch(() => {});
+                      }
+                      document.removeEventListener('touchstart', resumeOnInteraction);
+                      document.removeEventListener('click', resumeOnInteraction);
+                    };
+                    document.addEventListener('touchstart', resumeOnInteraction, { once: true });
+                    document.addEventListener('click', resumeOnInteraction, { once: true });
+                  });
+                }
+              }
+              updatePlaylistUI();
+            };
+            
+            if (audio.readyState >= 3) resumePlayback();
+            else audio.addEventListener('canplay', resumePlayback, { once: true });
+            return true;
+          } catch (e) {}
+        }
+        return false;
+      }
+      
+      window.addEventListener('beforeunload', saveMusicState);
+      window.addEventListener('pagehide', saveMusicState);
+      document.addEventListener('click', (e) => {
+        const link = e.target.closest('a');
+        if (link && link.href && !link.href.startsWith('javascript:')) {
+          e.preventDefault();
+          saveMusicState();
+          setTimeout(() => { window.location.href = link.href; }, 50);
+        }
+      }, true);
+      setInterval(() => { if (isPlaying) saveMusicState(); }, 500);
+      
+      if (!restoreMusicState()) loadTrack(0);
+      updatePlaylistUI();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Demystifying PatchGuard | zer0condition</title>
+  <meta name="description" content="A comprehensive analysis of Microsoft's security feature called PatchGuard, designed to prevent unauthorized modifications to the Windows kernel.">
+  <link rel="icon" type="image/png" href="https://avatars.githubusercontent.com/u/70964202?v=4">
+  <link rel="apple-touch-icon" href="https://avatars.githubusercontent.com/u/70964202?v=4">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    :root {
+      --bg-primary: #0d1117;
+      --bg-secondary: #161b22;
+      --primary: #00d4aa;
+      --text-primary: #e6edf3;
+      --text-secondary: #8b949e;
+      --border: rgba(255,255,255,0.08);
+      --card-bg: rgba(255,255,255,0.02);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      line-height: 1.7;
+      min-height: 100vh;
+    }
+
+    /* Smooth entrance animations */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes slideInLeft {
+      from {
+        opacity: 0;
+        transform: translateX(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .back-btn {
+      animation: slideInLeft 0.5s ease 0.2s both;
+      position: fixed;
+      top: 24px;
+      left: 24px;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px;
+      background: rgba(0,0,0,0.4);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text-primary);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.9rem;
+      transition: all 0.25s ease;
+    }
+
+    .back-btn:hover {
+      background: rgba(0,212,170,0.1);
+      border-color: var(--primary);
+      color: var(--primary);
+      transform: translateX(-4px);
+    }
+
+    .blog-container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 100px 24px 60px;
+    }
+
+    .blog-header {
+      margin-bottom: 48px;
+      padding-bottom: 32px;
+      border-bottom: 1px solid var(--border);
+      animation: fadeInUp 0.6s ease both;
+    }
+
+    .blog-content h1 { animation: fadeInUp 0.5s ease both; }
+    .blog-content h2 { animation: fadeInUp 0.5s ease both; }
+    .blog-content h3 { animation: fadeInUp 0.5s ease both; }
+    .blog-content h4 { animation: fadeInUp 0.5s ease both; }
+    .blog-content p { animation: fadeIn 0.6s ease both; }
+    .blog-content img { animation: fadeInUp 0.7s ease both; transition: transform 0.3s ease, box-shadow 0.3s ease; }
+    .blog-content img:hover { transform: scale(1.02); box-shadow: 0 16px 48px rgba(0,212,170,0.15); }
+    .blog-content ul, .blog-content ol { animation: fadeIn 0.5s ease both; }
+    .blog-footer { animation: fadeInUp 0.6s ease 0.3s both; }
+    .blog-tag { transition: transform 0.2s ease, background 0.2s ease; }
+    .blog-tag:hover { transform: translateY(-2px); background: rgba(99,102,241,0.2); }
+    .repo-link { transition: all 0.3s cubic-bezier(.25,.46,.45,.94); }
+
+    .blog-meta {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .blog-meta-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .blog-meta-item i {
+      color: var(--primary);
+      font-size: 0.8rem;
+    }
+
+    .blog-title {
+      font-size: 2.5rem;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 20px;
+      background: linear-gradient(135deg, var(--text-primary), var(--primary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .blog-subtitle {
+      font-size: 1.15rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .blog-tags {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+
+    .blog-tag {
+      background: rgba(99,102,241,0.12);
+      color: #a5b4fc;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      border: 1px solid rgba(99,102,241,0.2);
+    }
+
+    .blog-content h1 {
+      font-size: 1.9rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin: 48px 0 20px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid rgba(0,212,170,0.2);
+    }
+
+    .blog-content h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 40px 0 16px;
+    }
+
+    .blog-content h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 32px 0 14px;
+    }
+
+    .blog-content h4 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--primary);
+      margin: 24px 0 12px;
+    }
+
+    .blog-content p {
+      color: var(--text-secondary);
+      margin-bottom: 18px;
+      font-size: 1.02rem;
+    }
+
+    .blog-content ul, .blog-content ol {
+      margin: 16px 0 24px 24px;
+      color: var(--text-secondary);
+    }
+
+    .blog-content li {
+      margin-bottom: 10px;
+      font-size: 1rem;
+    }
+
+    .blog-content a {
+      color: var(--primary);
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.2s ease;
+    }
+
+    .blog-content a:hover {
+      border-bottom-color: var(--primary);
+    }
+
+    .blog-content img {
+      max-width: 100%;
+      border-radius: 12px;
+      margin: 24px 0;
+      border: 1px solid var(--border);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+
+    .blog-content b, .blog-content strong {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .info-box {
+      background: linear-gradient(135deg, rgba(0,212,170,0.08), rgba(99,102,241,0.06));
+      border: 1px solid rgba(0,212,170,0.2);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin: 24px 0;
+    }
+
+    .info-box p {
+      margin: 0;
+      color: var(--text-primary);
+    }
+
+    .blog-footer {
+      margin-top: 64px;
+      padding-top: 32px;
+      border-top: 1px solid var(--border);
+    }
+
+    .credits-section {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      margin-bottom: 32px;
+    }
+
+    .credits-section h2 {
+      margin-top: 0;
+      margin-bottom: 16px;
+    }
+
+    .repo-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 24px;
+      background: linear-gradient(135deg, rgba(0,212,170,0.12), rgba(99,102,241,0.08));
+      border: 1px solid rgba(0,212,170,0.25);
+      border-radius: 12px;
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.25s ease;
+    }
+
+    .repo-link:hover {
+      background: linear-gradient(135deg, rgba(0,212,170,0.2), rgba(99,102,241,0.14));
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,212,170,0.15);
+    }
+
+    .footer-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text-primary);
+      text-decoration: none;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .nav-link:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    @media (max-width: 768px) {
+      .back-btn {
+        top: 16px;
+        left: 16px;
+        padding: 10px 16px;
+        font-size: 0.85rem;
+      }
+
+      .blog-container {
+        padding: 80px 16px 40px;
+      }
+
+      .blog-title {
+        font-size: 1.8rem;
+      }
+
+      .blog-content h1 {
+        font-size: 1.5rem;
+      }
+
+      .blog-content h2 {
+        font-size: 1.3rem;
+      }
+
+      .footer-nav {
+        flex-direction: column;
+      }
+
+      .nav-link {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .music-toggle { right: 20px; bottom: 20px; }
+      .music-volume { display: none; }
+    }
+
+    /* Music Player Styles */
+    .music-toggle {
+      position: fixed;
+      right: 24px; bottom: 24px;
+      background: var(--card-bg);
+      color: var(--primary);
+      border: 2px solid var(--border);
+      backdrop-filter: blur(18px);
+      z-index: 260;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.28);
+      transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+      width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+    }
+    .music-toggle:hover { transform: scale(1.06); box-shadow: 0 10px 36px rgba(0,0,0,0.32); background: rgba(0,212,170,0.06); }
+    .music-toggle.playing i { animation: musicIconSpin 2s linear infinite; }
+    .music-toggle.playing { border-color: var(--primary); box-shadow: 0 0 20px rgba(0,212,170,0.3); }
+    @keyframes musicIconSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    .music-modal { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 1000; }
+    .music-modal.active { display: flex; }
+    .music-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
+    .music-window { 
+      position: relative; z-index: 1; 
+      width: min(380px, 90vw); 
+      border-radius: 16px; 
+      padding: 24px; 
+      background: rgba(18, 18, 28, 0.06);
+      backdrop-filter: blur(20px) saturate(120%); 
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.03) inset;
+      border: 1px solid rgba(255,255,255,0.04);
+    }
+    .music-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .music-title { font-weight: 600; color: var(--text-primary); font-size: 1rem; }
+    .btn-small { padding: 8px 12px; border-radius: 8px; background: var(--card-bg); border: 1px solid var(--border); color: var(--text-primary); cursor: pointer; }
+    
+    .music-artwork {
+      width: 100%; aspect-ratio: 1; max-width: 180px; margin: 0 auto 20px;
+      border-radius: 12px; background: rgba(0,212,170,0.06); border: 1px solid rgba(255,255,255,0.04);
+      display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;
+    }
+    .music-artwork i { font-size: 3.5rem; color: var(--primary); opacity: 0.5; }
+    .music-artwork.playing i { animation: musicPulse 1s ease-in-out infinite; }
+    @keyframes musicPulse { 0%, 100% { transform: scale(1); opacity: 0.5; } 50% { transform: scale(1.1); opacity: 0.7; } }
+    
+    .music-info { text-align: center; margin-bottom: 16px; }
+    .music-track-name { color: var(--text-primary); font-weight: 600; font-size: 1rem; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .music-track-artist { color: var(--text-secondary); font-size: 0.8rem; }
+    
+    .music-progress { margin-bottom: 16px; }
+    .music-progress-bar { width: 100%; height: 3px; background: rgba(255,255,255,0.06); border-radius: 2px; cursor: pointer; position: relative; overflow: hidden; }
+    .music-progress-fill { height: 100%; background: var(--primary); border-radius: 2px; width: 0%; transition: width 0.1s linear; }
+    .music-time { display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-secondary); margin-top: 6px; opacity: 0.8; }
+    
+    .music-controls { display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 16px; }
+    .music-btn { width: 38px; height: 38px; border-radius: 50%; background: transparent; border: 1px solid rgba(255,255,255,0.08); color: var(--text-primary); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; }
+    .music-btn:hover { border-color: var(--primary); color: var(--primary); background: rgba(0,212,170,0.06); }
+    .music-btn.play-btn { width: 52px; height: 52px; background: rgba(0,212,170,0.15); border: 1px solid var(--primary); color: var(--primary); }
+    .music-btn.play-btn:hover { transform: scale(1.05); background: rgba(0,212,170,0.25); box-shadow: 0 0 20px rgba(0,212,170,0.2); }
+    
+    .music-volume { display: flex; align-items: center; gap: 10px; padding: 0 8px; margin-bottom: 12px; }
+    .music-volume i { color: var(--text-secondary); font-size: 0.85rem; opacity: 0.7; }
+    .music-volume-slider { flex: 1; height: 3px; -webkit-appearance: none; appearance: none; background: rgba(255,255,255,0.06); border-radius: 2px; cursor: pointer; }
+    .music-volume-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 10px; height: 10px; background: var(--primary); border-radius: 50%; cursor: pointer; }
+    
+    .music-playlist { max-height: 140px; overflow-y: auto; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 10px; margin-top: 10px; }
+    .music-playlist-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; color: var(--text-secondary); font-size: 0.8rem; }
+    .music-playlist-item:hover { background: rgba(255,255,255,0.03); color: var(--text-primary); }
+    .music-playlist-item.active { background: rgba(0,212,170,0.08); color: var(--primary); }
+    .music-playlist-item i { font-size: 0.7rem; }
+  </style>
+</head>
+<body>
+  <a href="../../index.html#blog" class="back-btn">
+    <i class="fas fa-arrow-left"></i>
+    <span>Back</span>
+  </a>
+
+  <div class="blog-container">
+    <header class="blog-header">
+      <div class="blog-meta">
+        <span class="blog-meta-item"><i class="fas fa-calendar"></i> April 26, 2023</span>
+        <span class="blog-meta-item"><i class="fas fa-clock"></i> ~1 hour read</span>
+        <span class="blog-meta-item"><i class="fas fa-user"></i> zer0condition</span>
+      </div>
+      <h1 class="blog-title">Demystifying PatchGuard: An In-Depth Analysis Through Practical Engineering</h1>
+      <p class="blog-subtitle">A comprehensive analysis of Microsoft's sophisticated security feature called PatchGuard, designed to prevent unauthorized modifications to the Windows kernel. Explores inner workings and possible bypass methods.</p>
+      <div class="blog-tags">
+        <span class="blog-tag">PatchGuard</span>
+        <span class="blog-tag">Windows Kernel</span>
+        <span class="blog-tag">Security Research</span>
+        <span class="blog-tag">Reverse Engineering</span>
+      </div>
+    </header>
+
+    <article class="blog-content">
+      <h1>What is PatchGuard?</h1>
+      <p>The presence of PatchGuard in the 64-bit Windows operating system is a remarkable security measure that thwarts the efforts of kernel-level rootkits and other malware to manipulate critical system code and structures. Its method of operation is through regular monitoring of the kernel to identify any illicit modifications and counteracting them without delay. The purpose of PatchGuard is to preserve the integrity of the operating system and guarantee that it operates at an optimal level, consequently heightening the general security and steadiness of the system.</p>
+      
+      <p>Kernel code and data structures are verified and digital signatures enforced by PatchGuard, a measure designed to avert instability or security threats brought about by inconsistent modifications or code injections into the kernel by developers. Working within the scope of PatchGuard's restrictions, software developers must ensure compliance and a safe design to function seamlessly with the kernel.</p>
+
+      <h1>Initialization</h1>
+      
+      <h3>KiFilterFiberContext</h3>
+      <p>PatchGuard's initialization process is mainly carried out by the function <b>KiFilterFiberContext</b>, which initializes PatchGuard's contexts and verification mechanisms. KiFilterFiberContext is called twice during the boot process, with one of the methods involving an exception handler known as KiAmd64SpecificState.</p>
+      
+      <p>To trigger the exception handler and execute KiFilterFiberContext, a division error is intentionally triggered at the beginning of the boot process. The two values used to compute the division are known symbols - <b>KdDebuggerNotPresent</b> and <b>KdPitchDebugger</b> - which are used to determine whether a debugger is attached or not. If a debugger is present, PatchGuard is not initialized.</p>
+      
+      <p>In a normal scenario, the values of the two symbols are set to 1, which results in the idiv instruction computing the values rax=0x80000000, rdx=0x80000000 and r8d=0xffffffff. The computation of this division results in a divide error, which triggers the KiDivideErrorFault function to execute the KiFilterFiberContext function.</p>
+      
+      <p>KiFilterFiberContext is responsible for calling the initialization procedure that creates PatchGuard contexts, with specific arguments. It is worth noting that one of the arguments is hardcoded to 0, which suggests that it may be called from elsewhere. In fact, another initialization process has already been documented, which points to the function <b>ExpLicenseWatchInitWorker</b>.</p>
+      
+      <h3>ExpLicenseWatchInitWorker</h3>
+      <p>The function in question is called ExpLicenseWatchInitWorker and is invoked before KeInitAmd64SpecificState in the boot process. It is part of Microsoft's PatchGuard, which verifies the authenticity of Microsoft licenses. The call stack shows that ExInitSystemPhase2 calls ExpGetNtProductTypeFromLicenseValue, which is related to license verification. ExpLicenseWatchInitWorker then calls KiFilterFiberContext, but only with a low probability of 4%, using random values generated by the rdtsc instruction.</p>
+      
+      <p>ExpLicenseWatchInitWorker includes some checks for the presence of a debugger and the safe boot mode, which are common security measures. The return value of the function is the random value generated by the rdtsc instruction, multiplied by a constant value of 0x51eb851f. If InitIsWinPEMode is true, the random returned value is later used as an index.</p>
+
+      <h1>PatchGuard Context</h1>
+      <p>The structure of the PatchGuard context is divided into three sections. The first section holds the core content of the PatchGuard mechanisms. The second section is a data recipient that keeps original data for later use, while the third section holds information about data to check.</p>
+      
+      <h3>The First Part</h3>
+      <p>The first part of the structure includes the code for the function <b>CmpAppendDllSection</b>, which is copied directly into the structure and is used later when the integrity check is triggered by PatchGuard. This code's primary function is to decrypt the rest of the PatchGuard context structure with a randomly generated key. The section also holds many function pointers from ntoskrnl API, which are kept this way so that PatchGuard routines can use them independently of a relocation.</p>
+      
+      <p>The second part of the structure includes many references to global variables, such as <b>KiWaitAlways</b> and <b>KiWaitNever</b>. These values are initialized randomly at boot time and are used to encode and decode PatchGuard DPC pointers. Additionally, it holds a pointer to another PatchGuard context structure, which is used multiple times as a clean backup of a structure.</p>
+      
+      <h3>The Second Part</h3>
+      <p>The second part of the structure contains data that will be used later on. In Windows, entries are saved in this part of the structure to prevent bypass. These entries include PTEs, which are restored just before triggering KeBugCheck, and critical kernel routines, such as Hal, Ntoskrnl, and RtlpBreakWithStatusInstruction/DbgBreakPointWithStatus, among others.</p>
+      
+      <h3>The Third Part</h3>
+      <p>The third part of the PatchGuard context structure contains an array of structures that hold information for each check that needs to be performed. Each structure has a KeBugCheckType field that distinguishes the type of structure being checked, such as IDT or GDT. The structure also contains a pointer to the data to be checked, its size, and a checksum that was computed during PatchGuard initialization as a reference for integrity checks.</p>
+
+      <h2>Initialization Stage</h2>
+      <p>The initialization of the context is primarily carried out through a function called <b>KiInitPatchGuardContext</b>, which although unnamed, is documented in existing literature. However, there are alternative methods of initializing PatchGuard context, and in certain scenarios, separate mechanisms are established for system checking purposes.</p>
+      
+      <h3>Different Initialization Methods</h3>
+      <p>As previously mentioned, the KiInitPatchGuardContext function is responsible for initializing most of the PatchGuard contexts, with the choice of method determined by the function arguments. The function arguments are as follows:</p>
+      
+      <ul>
+        <li><b>Arg 1:</b> Index for DPC method</li>
+        <li><b>Arg 2:</b> Scheduling method</li>
+        <li><b>Arg 3:</b> Random value used to determine the maximum size to be checked</li>
+        <li><b>Arg 4:</b> Pointer to the structure from ExpLicenseWatchInitWorker (low chance)</li>
+        <li><b>Arg 5:</b> Boolean to decide whether or not the integrity of NT routines has to be checked</li>
+      </ul>
+
+      <h3>The Known Methods</h3>
+      <p>There are different methods that KiInitPatchGuardContext may use to initialize PatchGuard checks:</p>
+      
+      <p><b>Method 1 (Timer/DPC):</b> Involves inserting a timer linked with a DPC. PatchGuard initializes a PatchGuard Context structure and a DPC structure and sets it in a timer structure. The timer is queued with KeSetCoalescableTimer and will fire the DPC between 2 to 2'10" following the call.</p>
+      
+      <p><b>Method 2 (AcpiReserved):</b> The pointer to the DPC is hidden in the field AcpiReserved from the PRCB. It is queued in HalpTimerDpcRoutine and checks that at least two minutes have elapsed between each check.</p>
+      
+      <p><b>Method 3 (HalReserved):</b> The pointer to the DPC is hidden in the field HalReserved from the PRCB. It is queued by HalpMcaQueueDpc, also with a 2 minutes minimum period.</p>
+      
+      <p><b>Method 4 (System Thread):</b> Involves creating a new system thread using a pointer to a KI_FILTER_FIBER_PARAM structure, which only occurs with a probability of 4%.</p>
+      
+      <p><b>Method 5 (APC Insertion):</b> The PatchGuard Context structure and an APC structure are initialized, and then inserted into an existing system thread.</p>
+
+      <h4>DPC Routine Functions</h4>
+      <p>The first argument randomly selects an index to choose a routine from the following functions:</p>
+      <ol>
+        <li>CmpEnableLazyFlushDpcRoutine</li>
+        <li>ExpCenturyDpcRoutine</li>
+        <li>ExpTimeZoneDpcRoutine</li>
+        <li>ExpTimeRefreshDpcRoutine</li>
+        <li>CmpLazyFlushDpcRoutine</li>
+        <li>ExpTimerDpcRoutine</li>
+        <li>IopTimerDispatch</li>
+        <li>IopIrpStackProfilerDpcRoutine</li>
+        <li>KiBalanceSetManagerDeferredRoutine</li>
+        <li>PopThermalZoneDpc</li>
+        <li>KiTimerDispatch/KiDpcDispatch</li>
+      </ol>
+
+      <h1>Triggering Contexts</h1>
+      <p>This section focuses on how the context structures are activated, which can vary depending on the method used.</p>
+      
+      <h2>Via DPC Execution</h2>
+      <p>One common method used by PatchGuard to initiate a check is through DPC. The first step when one of the PatchGuard DPC functions is called is to determine whether the DPC is a PatchGuard DPC or a usual DPC. This is done by checking if the DeferredContext has a canonical address or not.</p>
+      
+      <p>If the DeferredContext parameter has a non-canonical address, then the function calls KiCustomAccessRoutineX and executes what is known as <b>"the Russian roulette trick"</b>.</p>
+      
+      <img src="https://i.imgur.com/xxm5Jv2.png" alt="KiCustomRecurseRoutines">
+
+      <h2>Triggering the Exception Handler</h2>
+      <p>After the check for the canonical address of the DeferredContext parameter, if it is found to be non-canonical, PatchGuard calls the function KiCustomAccessRoutineX. This function then calls KiCustomRecurseRoutineX with two parameters: a counter and the non-canonical DeferredContext. The mechanism is similar to playing Russian roulette, where one keeps pulling the trigger of a gun with one bullet until it fires.</p>
+
+      <h2>Decrypting PatchGuard Context</h2>
+      <p>The responsibility of decrypting the first layer of the PatchGuard context structure lies with the exception handler. The decryption process involves two layers and a small trick. The first layer decrypts the entire structure, and then "a half" of it overwrites the header with hardcoded values. The second layer involves self-modifying code that decrypts the rest of the structure.</p>
+      
+      <p>The encryption and decryption routines used in PatchGuard rely on random values stored in global variables called <b>KiWaitNever</b> and <b>KiWaitAlways</b>. These variables hold randomly generated values during boot time and are used by KiInitPatchGuardContext to encrypt the PatchGuard context structure.</p>
+
+      <h1>Additional Checks</h1>
+      
+      <h3>PspProcessDelete</h3>
+      <p>Additional integrity checks can be found in specific functions like PspProcessDelete, where an integrity check is performed on the KeServiceDescriptorTable and KeServiceDescriptorTableShadow during process deletion.</p>
+      <img src="https://i.imgur.com/Fg5Sp6T.png" alt="PspProcessDelete">
+
+      <h3>KiInitializeUserApc</h3>
+      <p>Similar to PspProcessDelete, there is another function that includes an independent integrity verification for the Interrupt Descriptor Table (IDT). If a modification is detected, a DPC is injected with KiSchedulerDpc, which then triggers KeBugCheck.</p>
+      <img src="https://i.imgur.com/Ngqd9Ex.png" alt="KiInitializeUserApc">
+
+      <h3>CcInitializeBcbProfiler</h3>
+      <p>PatchGuard uses a hidden method to perform checks using the CcInitializeBcbProfiler function. This function first calculates the checksum of a random routine in the ntoskrnl.</p>
+      <img src="https://i.imgur.com/q4DXh80.png" alt="CcInitializeBcbProfiler">
+
+      <h1>The Verification Phase</h1>
+      <p>This section discusses the different verification routines used in PatchGuard, including FsRtlMdlReadCompleteDevEx, which is the main routine.</p>
+
+      <h2>Prologue</h2>
+      <ol>
+        <li>PatchGuard begins by checking the integrity of the whole PatchGuard context structure</li>
+        <li>PatchGuard proceeds to re-encrypt the first part of the PatchGuard context structure</li>
+        <li>PatchGuard performs another checksum of part 2 and 3 from the context</li>
+        <li>The wait (sleep) ensures that at least two minutes have elapsed between two checks</li>
+        <li>The first part of the context is decrypted back without any additional steps</li>
+        <li>A checksum is performed on part 2 and 3 of the context to ensure no modifications occurred</li>
+        <li>The first 0x618 bytes of the context are checksummed</li>
+        <li>PatchGuard determines the processor on which the check will run</li>
+      </ol>
+
+      <h2>When a Modification is Detected</h2>
+      <p>After the checksum is completed, if a modification is detected, PatchGuard triggers a BSOD after performing some specific actions:</p>
+      <ul>
+        <li>Put the structure in a common state to compute the checksum</li>
+        <li>Restore the workitem and store the checksum result</li>
+        <li>Re-encrypt the code of CmpAppendDllSection</li>
+        <li>Restore sensitive data including PTEs and Windows critical routines</li>
+        <li>Clear DbgPrint routine with 0xC3 (ret instruction) as an anti-debug measure</li>
+        <li>Call KeGuardCheckICall with KeBugCheckEx as an argument</li>
+      </ul>
+
+      <h1>Conclusion</h1>
+      <p>In conclusion, PatchGuard is an important security feature in the Windows operating system that helps protect against malicious attacks by preventing unauthorized modifications to the kernel. While it has been criticized by some for limiting access to certain kernel functions, it remains a key component of Windows security.</p>
+    </article>
+
+    <footer class="blog-footer">
+      <div class="credits-section">
+        <h2>Credits</h2>
+        <p>The work done on understanding PatchGuard would not have been possible without the contributions of: Adam Orion, Dongjiang, Andrea Allievi, 0xcpu, Skywing, Skape, Satoshi Tanda, eShard for Tetrane's papers, and many more. Their research, analysis, and findings have helped to shed light on the inner workings of PatchGuard.</p>
+      </div>
+
+      <a href="https://github.com/zer0condition/Demystifying-PatchGuard" target="_blank" class="repo-link">
+        <i class="fab fa-github"></i>
+        <span>View GitHub Repository</span>
+      </a>
+
+      <div class="footer-nav" style="margin-top: 32px;">
+        <a href="../../index.html#blog" class="nav-link">
+          <i class="fas fa-arrow-left"></i>
+          <span>Back to Blog</span>
+        </a>
+        <a href="../reversing-a-signed-driver/index.html" class="nav-link">
+          <span>Next: Reversing a Signed Driver</span>
+          <i class="fas fa-arrow-right"></i>
+        </a>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Music Toggle Button -->
+  <div class="music-toggle" id="musicToggle" title="Music Player">
+    <i class="fas fa-music"></i>
+  </div>
+
+  <!-- Music Player Modal -->
+  <div class="music-modal" id="musicModal" aria-hidden="true">
+    <div class="music-backdrop" id="musicBackdrop"></div>
+    <div class="music-window" role="dialog" aria-label="Music Player">
+      <div class="music-header">
+        <div class="music-title">Music</div>
+        <button class="btn-small" id="closeMusic">Close</button>
+      </div>
+      <div class="music-artwork" id="musicArtwork">
+        <i class="fas fa-compact-disc"></i>
+      </div>
+      <div class="music-info">
+        <div class="music-track-name" id="musicTrackName">No track loaded</div>
+        <div class="music-track-artist" id="musicTrackArtist">Add songs to /songs folder</div>
+      </div>
+      <div class="music-progress">
+        <div class="music-progress-bar" id="musicProgressBar">
+          <div class="music-progress-fill" id="musicProgressFill"></div>
+        </div>
+        <div class="music-time">
+          <span id="musicCurrentTime">0:00</span>
+          <span id="musicDuration">0:00</span>
+        </div>
+      </div>
+      <div class="music-controls">
+        <button class="music-btn" id="musicPrev" title="Previous"><i class="fas fa-backward"></i></button>
+        <button class="music-btn play-btn" id="musicPlayPause" title="Play/Pause"><i class="fas fa-play"></i></button>
+        <button class="music-btn" id="musicNext" title="Next"><i class="fas fa-forward"></i></button>
+      </div>
+      <div class="music-volume">
+        <i class="fas fa-volume-down"></i>
+        <input type="range" class="music-volume-slider" id="musicVolume" min="0" max="100" value="80">
+        <i class="fas fa-volume-up"></i>
+      </div>
+      <div class="music-playlist" id="musicPlaylist"></div>
+    </div>
+  </div>
+
+  <script>
+    // Music Player for Blog Posts
+    (function initMusicPlayer() {
+      const musicModal = document.getElementById('musicModal');
+      const musicBackdrop = document.getElementById('musicBackdrop');
+      const closeMusic = document.getElementById('closeMusic');
+      const musicArtwork = document.getElementById('musicArtwork');
+      const musicTrackName = document.getElementById('musicTrackName');
+      const musicTrackArtist = document.getElementById('musicTrackArtist');
+      const musicProgressBar = document.getElementById('musicProgressBar');
+      const musicProgressFill = document.getElementById('musicProgressFill');
+      const musicCurrentTime = document.getElementById('musicCurrentTime');
+      const musicDuration = document.getElementById('musicDuration');
+      const musicPlayPause = document.getElementById('musicPlayPause');
+      const musicPrev = document.getElementById('musicPrev');
+      const musicNext = document.getElementById('musicNext');
+      const musicVolume = document.getElementById('musicVolume');
+      const musicPlaylist = document.getElementById('musicPlaylist');
+      const musicToggle = document.getElementById('musicToggle');
+      
+      if (!musicModal) return;
+      
+      let audio = new Audio();
+      let isPlaying = false;
+      let currentTrack = 0;
+      
+      // Path to songs folder (relative from blog post)
+      const basePath = '../../songs/';
+      
+      const playlist = [
+        { name: 'Critical Acclaim', artist: 'Avenged Sevenfold', src: basePath + 'Avenged Sevenfold -Critical Acclaim.mp3' },
+        { name: 'Carry on Wayward Son', artist: 'Kansas', src: basePath + 'Kansas -Carry on Wayward Son.mp3' },
+        { name: 'Holy Wars', artist: 'Megadeth', src: basePath + 'Megadeth -Holy Wars.mp3' },
+        { name: 'Ride The Lightning', artist: 'Metallica', src: basePath + 'Metallica -Ride The Lightning.mp3' },
+        { name: 'Cowboys from Hell', artist: 'Pantera', src: basePath + 'Pantera -Cowboys from Hell.mp3' },
+      ];
+      
+      function formatTime(seconds) {
+        if (isNaN(seconds)) return '0:00';
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+      }
+      
+      function updatePlaylistUI() {
+        musicPlaylist.innerHTML = '';
+        playlist.forEach((track, index) => {
+          if (!track.src) return;
+          const item = document.createElement('div');
+          item.className = 'music-playlist-item' + (index === currentTrack ? ' active' : '');
+          item.innerHTML = `<i class="fas ${index === currentTrack && isPlaying ? 'fa-pause' : 'fa-play'}"></i> ${track.name}`;
+          item.addEventListener('click', () => {
+            currentTrack = index;
+            loadTrack(currentTrack);
+            playTrack();
+          });
+          musicPlaylist.appendChild(item);
+        });
+      }
+      
+      function loadTrack(index) {
+        const track = playlist[index];
+        if (!track || !track.src) {
+          musicTrackName.textContent = 'No track loaded';
+          musicTrackArtist.textContent = 'Add songs to /songs folder';
+          return;
+        }
+        audio.src = track.src;
+        musicTrackName.textContent = track.name;
+        musicTrackArtist.textContent = track.artist;
+        updatePlaylistUI();
+      }
+      
+      function playTrack() {
+        if (!audio.src || audio.src === window.location.href) return;
+        audio.play();
+        isPlaying = true;
+        musicPlayPause.innerHTML = '<i class="fas fa-pause"></i>';
+        musicArtwork.classList.add('playing');
+        if (musicToggle) musicToggle.classList.add('playing');
+        updatePlaylistUI();
+      }
+      
+      function pauseTrack() {
+        audio.pause();
+        isPlaying = false;
+        musicPlayPause.innerHTML = '<i class="fas fa-play"></i>';
+        musicArtwork.classList.remove('playing');
+        if (musicToggle) musicToggle.classList.remove('playing');
+        updatePlaylistUI();
+      }
+      
+      function togglePlay() {
+        if (isPlaying) pauseTrack();
+        else playTrack();
+      }
+      
+      function nextTrack() {
+        currentTrack = (currentTrack + 1) % playlist.length;
+        loadTrack(currentTrack);
+        playTrack();
+      }
+      
+      function prevTrack() {
+        currentTrack = (currentTrack - 1 + playlist.length) % playlist.length;
+        loadTrack(currentTrack);
+        playTrack();
+      }
+      
+      audio.addEventListener('timeupdate', () => {
+        const progress = (audio.currentTime / audio.duration) * 100;
+        musicProgressFill.style.width = progress + '%';
+        musicCurrentTime.textContent = formatTime(audio.currentTime);
+      });
+      
+      audio.addEventListener('loadedmetadata', () => {
+        musicDuration.textContent = formatTime(audio.duration);
+      });
+      
+      audio.addEventListener('ended', nextTrack);
+      
+      musicProgressBar.addEventListener('click', (e) => {
+        const rect = musicProgressBar.getBoundingClientRect();
+        const percent = (e.clientX - rect.left) / rect.width;
+        audio.currentTime = percent * audio.duration;
+      });
+      
+      audio.volume = 0.8;
+      musicVolume.addEventListener('input', (e) => {
+        audio.volume = e.target.value / 100;
+      });
+      
+      musicPlayPause.addEventListener('click', togglePlay);
+      musicNext.addEventListener('click', nextTrack);
+      musicPrev.addEventListener('click', prevTrack);
+      
+      function openMusicModal() {
+        musicModal.classList.add('active');
+        musicModal.setAttribute('aria-hidden', 'false');
+        updatePlaylistUI();
+      }
+      
+      function closeMusicModal() {
+        musicModal.classList.remove('active');
+        musicModal.setAttribute('aria-hidden', 'true');
+      }
+      
+      if (musicToggle) musicToggle.addEventListener('click', openMusicModal);
+      if (closeMusic) closeMusic.addEventListener('click', closeMusicModal);
+      if (musicBackdrop) musicBackdrop.addEventListener('click', closeMusicModal);
+      
+      // Cross-page persistence
+      function saveMusicState() {
+        const state = {
+          track: currentTrack,
+          time: audio.currentTime,
+          playing: isPlaying,
+          volume: audio.volume
+        };
+        localStorage.setItem('musicState', JSON.stringify(state));
+      }
+      
+      function restoreMusicState() {
+        const saved = localStorage.getItem('musicState');
+        if (saved) {
+          try {
+            const state = JSON.parse(saved);
+            currentTrack = state.track || 0;
+            const track = playlist[currentTrack];
+            if (!track || !track.src) return false;
+            
+            audio.preload = 'auto';
+            audio.src = track.src;
+            audio.volume = state.volume || 0.8;
+            if (musicVolume) musicVolume.value = audio.volume * 100;
+            
+            musicTrackName.textContent = track.name;
+            musicTrackArtist.textContent = track.artist;
+            
+            const resumePlayback = () => {
+              audio.currentTime = state.time || 0;
+              if (state.playing) {
+                const playPromise = audio.play();
+                if (playPromise) {
+                  playPromise.then(() => {
+                    isPlaying = true;
+                    musicPlayPause.innerHTML = '<i class="fas fa-pause"></i>';
+                    musicArtwork.classList.add('playing');
+                    if (musicToggle) musicToggle.classList.add('playing');
+                    updatePlaylistUI();
+                  }).catch(() => {
+                    // Autoplay blocked - wait for user interaction
+                    const resumeOnInteraction = () => {
+                      if (!isPlaying && state.playing) {
+                        audio.play().then(() => {
+                          isPlaying = true;
+                          musicPlayPause.innerHTML = '<i class="fas fa-pause"></i>';
+                          musicArtwork.classList.add('playing');
+                          if (musicToggle) musicToggle.classList.add('playing');
+                          updatePlaylistUI();
+                        }).catch(() => {});
+                      }
+                      document.removeEventListener('touchstart', resumeOnInteraction);
+                      document.removeEventListener('click', resumeOnInteraction);
+                    };
+                    document.addEventListener('touchstart', resumeOnInteraction, { once: true });
+                    document.addEventListener('click', resumeOnInteraction, { once: true });
+                  });
+                }
+              }
+              updatePlaylistUI();
+            };
+            
+            if (audio.readyState >= 3) resumePlayback();
+            else audio.addEventListener('canplay', resumePlayback, { once: true });
+            return true;
+          } catch (e) {}
+        }
+        return false;
+      }
+      
+      window.addEventListener('beforeunload', saveMusicState);
+      window.addEventListener('pagehide', saveMusicState);
+      document.addEventListener('click', (e) => {
+        const link = e.target.closest('a');
+        if (link && link.href && !link.href.startsWith('javascript:')) {
+          e.preventDefault();
+          saveMusicState();
+          setTimeout(() => { window.location.href = link.href; }, 50);
+        }
+      }, true);
+      setInterval(() => { if (isPlaying) saveMusicState(); }, 500);
+      
+      if (!restoreMusicState()) loadTrack(0);
+      updatePlaylistUI();
+    })();
+  </script>
+</body>
+</html>
