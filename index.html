@@ -176,10 +176,10 @@ button{font:inherit;cursor:pointer;background:none;border:none;color:inherit}
   align-items:stretch;
 }
 .mod:hover{background:rgba(255,87,34,0.04)}
-.mod > div{padding:18px 8px;display:flex;flex-direction:column;justify-content:center;border-right:1px dashed var(--line)}
+.mod > div{padding:22px 12px;display:flex;flex-direction:column;justify-content:flex-start;border-right:1px dashed var(--line);min-width:0}
 .mod > div:first-child{padding-left:28px}
 .mod > div:last-child{border-right:none;padding-right:28px}
-.mod .m-idx{color:var(--ink-3);font-size:10px;letter-spacing:0.1em}
+.mod .m-idx{color:var(--ink-3);font-size:11px;letter-spacing:0.14em;font-family:var(--mono)}
 .mod:hover .m-idx{color:var(--accent)}
 .mod .m-name{display:flex;flex-direction:column;gap:6px}
 .mod .m-name .n{font-size:18px;color:var(--ink);font-weight:400;letter-spacing:-0.01em;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
@@ -193,7 +193,7 @@ button{font:inherit;cursor:pointer;background:none;border:none;color:inherit}
 .mod .m-forks{font-size:14px;color:var(--ink-2);letter-spacing:0.04em}
 .mod .m-perm{font-size:10px;color:var(--ink-3);letter-spacing:0.14em;text-transform:uppercase;line-height:1.6}
 .mod .m-perm b{color:var(--good)}
-.mod .m-go{font-size:10px;color:var(--ink-3);letter-spacing:0.14em;text-transform:uppercase;display:flex;align-items:center;gap:6px;justify-content:flex-end}
+.mod .m-go{font-size:10px;color:var(--ink-3);letter-spacing:0.14em;text-transform:uppercase;display:flex;flex-direction:row;align-items:center;gap:6px;justify-content:flex-end;padding-top:24px}
 .mod:hover .m-go{color:var(--accent)}
 .mod .m-go::after{content:'→';transition:transform .2s}
 .mod:hover .m-go::after{transform:translateX(3px)}
@@ -364,20 +364,14 @@ button{font:inherit;cursor:pointer;background:none;border:none;color:inherit}
 <!-- Loader -->
 <div id="loader">
   <div class="lw">
-    <div class="lh"><span><b>WinDbg</b> · zer0condition.dmp</span><span>kd&gt;</span></div>
+    <div class="lh"><span><b>zer0condition</b> · portfolio</span><span>v2026.1</span></div>
     <div class="lt" id="lt">
-      <div>Microsoft (R) Windows Debugger Version 10.0.27849.1001 AMD64</div>
-      <div>Copyright (c) zer0condition. All rights reverse-engineered.</div>
-      <div>&nbsp;</div>
-      <div>Loading dump file [\\?\C:\dumps\zer0condition.dmp]</div>
-      <div>Mini Kernel Dump File: only registers, stack and modules are available</div>
-      <div>&nbsp;</div>
-      <div>Symbol search path is: srv*</div>
-      <div>Executable search path is:</div>
-      <div>Windows 11 Kernel Version 26100 MP (24 procs) Free x64</div>
-      <div class="ok">Symbols loaded — 21 modules mapped</div>
-      <div class="accent">kd&gt; .reload /f</div>
-      <div class="ok">[+] ready</div>
+      <div>initializing workspace…</div>
+      <div>resolving fonts · jetbrains mono · fraunces</div>
+      <div>fetching project index</div>
+      <div class="ok">10 projects · 3 writings loaded</div>
+      <div>compositing layout</div>
+      <div class="accent">→ ready</div>
     </div>
     <div class="lb"><div class="lf" id="lf"></div></div>
   </div>
@@ -389,10 +383,9 @@ button{font:inherit;cursor:pointer;background:none;border:none;color:inherit}
   <header class="titlebar">
     <div class="tb-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
     <div class="tb-path">
-      <span>kd&gt;</span>
-      <b>!process 0 7 zer0condition.exe</b>
-      <span class="sep">·</span>
-      <span>mapped at 0xFFFFF80000000000</span>
+      <b>zer0condition</b>
+      <span class="sep">/</span>
+      <span>portfolio</span>
     </div>
     <button class="menu-toggle" id="menuToggle">MENU</button>
     <div class="tb-actions">
@@ -405,15 +398,15 @@ button{font:inherit;cursor:pointer;background:none;border:none;color:inherit}
   <!-- Sidebar (memory map) -->
   <aside class="sidebar" id="sidebar">
     <div class="sb-section">
-      <div class="sb-h">// memory map</div>
-      <div class="sb-row" data-jump="hero"><span class="addr">0x00000</span><span>.header</span><span class="perm">R--</span></div>
-      <div class="sb-row" data-jump="symbols"><span class="addr">0x00010</span><span>.symbols</span><span class="perm">R--</span></div>
-      <div class="sb-row" data-jump="modules"><span class="addr">0x00100</span><span>.text</span><span class="perm">RX-</span></div>
-      <div class="sb-row" data-jump="docs"><span class="addr">0x01000</span><span>.rdata</span><span class="perm">R--</span></div>
-      <div class="sb-row" data-jump="exports"><span class="addr">0x10000</span><span>.exports</span><span class="perm">RW-</span></div>
+      <div class="sb-h">// index</div>
+      <div class="sb-row" data-jump="hero"><span class="addr">01</span><span>overview</span><span class="perm"></span></div>
+      <div class="sb-row" data-jump="symbols"><span class="addr">02</span><span>notes</span><span class="perm"></span></div>
+      <div class="sb-row" data-jump="modules"><span class="addr">03</span><span>projects</span><span class="perm"></span></div>
+      <div class="sb-row" data-jump="docs"><span class="addr">04</span><span>writings</span><span class="perm"></span></div>
+      <div class="sb-row" data-jump="exports"><span class="addr">05</span><span>contact</span><span class="perm"></span></div>
     </div>
     <div class="sb-section">
-      <div class="sb-h">// loaded modules</div>
+      <div class="sb-h">// projects</div>
       <div id="sbModules"></div>
     </div>
     <div class="sb-section">
@@ -431,32 +424,21 @@ button{font:inherit;cursor:pointer;background:none;border:none;color:inherit}
     <section class="region" id="hero">
       <div class="hero">
         <div class="hero-grid"></div>
-        <div class="hero-stamp">
-          <span><b>SHA-256</b> · 7a3f…d201</span>
-          <span><b>BUILT</b> · over 11,000 hours</span>
-          <span><b>SIGNED BY</b> · curiosity</span>
-        </div>
         <div class="hero-inner">
-          <div class="hero-tag">portable executable header</div>
+          <div class="hero-tag">portfolio &middot; 2026</div>
           <h1 class="hero-title"><span class="non">low-level</span> <span class="ac">research</span></h1>
           <h1 class="hero-title">at the <em>edge</em> of the kernel</h1>
-          <p class="hero-sub">A small archive of hypervisors, kernel-mode tooling and reverse engineering — written close to the metal, for the parts of the system most people never see. Browse the memory map on the left.</p>
-
-          <div class="hero-hex">
-            <span class="ofs">0x00000000</span>
-            <span class="bytes">4D 5A 90 00 03 00 00 00 04 00 00 00 FF FF 00 00</span>
-            <span class="ascii">MZ……………………</span>
-          </div>
+          <p class="hero-sub">A small archive of hypervisors, kernel-mode tooling and reverse engineering &mdash; written close to the metal, for the parts of the system most people never see.</p>
         </div>
       </div>
     </section>
 
-    <!-- 0x00010  SYMBOLS / one-liner facts (no autobiography) -->
+    <!-- 02  Notes -->
     <section class="region" id="symbols">
       <header class="region-head">
-        <div class="addr"><b>0x00010</b> · .symbols</div>
-        <h2 class="title">read-only <span class="se">facts</span></h2>
-        <div class="meta"><span>5 entries</span><br><span>perm</span> r--</div>
+        <div class="addr"><b>02</b> · notes</div>
+        <h2 class="title">a few <span class="se">facts</span></h2>
+        <div class="meta"><span>5 entries</span></div>
       </header>
       <div class="sym">
         <div class="sym-l">disciplines</div>
@@ -480,27 +462,27 @@ button{font:inherit;cursor:pointer;background:none;border:none;color:inherit}
       </div>
     </section>
 
-    <!-- 0x00100  .text — modules / projects table -->
+    <!-- 03  Projects -->
     <section class="region" id="modules">
       <header class="region-head">
-        <div class="addr"><b>0x00100</b> · .text</div>
-        <h2 class="title">loaded <span class="se">modules</span></h2>
-        <div class="meta"><span>10 entries</span><br><span>perm</span> r-x</div>
+        <div class="addr"><b>03</b> · projects</div>
+        <h2 class="title">selected <span class="se">work</span></h2>
+        <div class="meta"><span>10 entries</span></div>
       </header>
       <div class="modules">
         <div class="mod-thead">
-          <div>idx</div><div>module</div><div>technology</div><div>★</div><div>⑂</div><div>permissions</div><div>jump</div>
+          <div>#</div><div>project</div><div>technology</div><div>★</div><div>⑂</div><div>category</div><div>view</div>
         </div>
         <div id="modList"></div>
       </div>
     </section>
 
-    <!-- 0x01000  .rdata — writings -->
+    <!-- 04  Writings -->
     <section class="region" id="docs">
       <header class="region-head">
-        <div class="addr"><b>0x01000</b> · .rdata</div>
-        <h2 class="title">long-form <span class="se">disassembly notes</span></h2>
-        <div class="meta"><span>3 entries</span><br><span>perm</span> r--</div>
+        <div class="addr"><b>04</b> · writings</div>
+        <h2 class="title">long-form <span class="se">writings</span></h2>
+        <div class="meta"><span>3 entries</span></div>
       </header>
       <div class="docs" id="docList">
         <div class="doc" data-href="https://websec.net/blog/ophion-building-a-stealth-intel-vt-x-hypervisor-for-windows-69b62daa7462693131828c97" data-ext="1">
@@ -530,12 +512,12 @@ button{font:inherit;cursor:pointer;background:none;border:none;color:inherit}
       </div>
     </section>
 
-    <!-- 0x10000  .exports / contact -->
+    <!-- 05  Contact -->
     <section class="region" id="exports">
       <header class="region-head">
-        <div class="addr"><b>0x10000</b> · .exports</div>
-        <h2 class="title">exported <span class="se">symbols</span></h2>
-        <div class="meta"><span>4 entries</span><br><span>perm</span> rw-</div>
+        <div class="addr"><b>05</b> · contact</div>
+        <h2 class="title">get in <span class="se">touch</span></h2>
+        <div class="meta"><span>4 entries</span></div>
       </header>
       <div class="exports">
         <div class="exp-stamp">// reach the maintainer</div>
@@ -545,7 +527,7 @@ button{font:inherit;cursor:pointer;background:none;border:none;color:inherit}
         <div class="exp-rows">
           <div class="exp-row">
             <span class="k">email</span>
-            <span class="v"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="3248574002515d5c565b465b5d5c040372555f535b5e1c515d5f">[email&#160;protected]</a></span>
+            <span class="v"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="ec96899edc8f8382888598858382daddac8b818d8580c28f8381">[email&#160;protected]</a></span>
             <button class="copy" data-copy="zer0condition61@gmail.com">copy</button>
           </div>
           <div class="exp-row">
@@ -567,8 +549,8 @@ button{font:inherit;cursor:pointer;background:none;border:none;color:inherit}
       </div>
 
       <div class="outro">
-        <div class="ep">when in doubt, single-step.</div>
-        <div>END OF DUMP · 0x00000000 · NO ERRORS · written from a terminal · fonts: jetbrains mono &amp; fraunces</div>
+        <div class="ep">thanks for scrolling.</div>
+        <div>built by hand · jetbrains mono &amp; fraunces</div>
       </div>
     </section>
 
@@ -576,9 +558,7 @@ button{font:inherit;cursor:pointer;background:none;border:none;color:inherit}
 
   <!-- Status bar -->
   <footer class="statusbar">
-    <span class="live">VM ATTACHED</span>
-    <span>cpu: <b style="color:var(--ink)">x86_64 · 24 cores</b></span>
-    <span>region: <b style="color:var(--ink)" id="curRegion">.header</b></span>
+    <span id="curRegion" style="color:var(--ink-2)">overview</span>
     <div class="right">
       <span><kbd>`</kbd> term</span>
       <span><kbd>m</kbd> player</span>
@@ -592,12 +572,12 @@ button{font:inherit;cursor:pointer;background:none;border:none;color:inherit}
 <div class="term" id="term">
   <div class="term-h">
     <div class="dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
-    <div class="ttl">kd&gt; — extension shell</div>
+    <div class="ttl">terminal</div>
     <button class="x" id="termX">×</button>
   </div>
   <div class="term-b" id="termOut"></div>
   <div class="term-i">
-    <span class="p">kd&gt;</span>
+    <span class="p">$</span>
     <input id="termIn" placeholder="type 'help'…" autocomplete="off" spellcheck="false">
   </div>
 </div>
@@ -669,7 +649,7 @@ const PROJECTS = [
 ];
 
 /* ========== modules table render ========== */
-function addr(i){ return '0x' + (0x100 + i*0x40).toString(16).toUpperCase().padStart(5,'0'); }
+function addr(i){ return String(i+1).padStart(2,'0'); }
 function renderModules(){
   const list = document.getElementById('modList');
   list.innerHTML = PROJECTS.map((p,i) => `
@@ -682,8 +662,8 @@ function renderModules(){
       <div class="m-tech">${p.tech.map(t=>`<b>·</b> ${t}`).join(' ')}</div>
       <div class="m-stars"><span class="b">★</span> ${p.stars.toLocaleString()}</div>
       <div class="m-forks">⑂ ${p.forks}</div>
-      <div class="m-perm"><b>r-x</b><br>${p.cat}</div>
-      <div class="m-go">jump</div>
+      <div class="m-perm">${p.cat}</div>
+      <div class="m-go">view</div>
     </div>
   `).join('');
   list.querySelectorAll('.mod').forEach(m => m.addEventListener('click', () => window.open(m.dataset.href,'_blank')));
@@ -697,7 +677,7 @@ function renderSBModules(){
     <div class="sb-row" data-href="https://github.com/zer0condition/${p.n}">
       <span class="addr">${addr(i)}</span>
       <span>${p.n.length>15?p.n.slice(0,15)+'…':p.n}</span>
-      <span class="perm">${p.perm}</span>
+      <span class="perm"></span>
     </div>
   `).join('');
   sb.querySelectorAll('.sb-row').forEach(r => r.addEventListener('click', () => window.open(r.dataset.href,'_blank')));
@@ -726,7 +706,7 @@ document.querySelectorAll('.sb-row[data-jump]').forEach(r => r.addEventListener(
 
 /* ========== sidebar scroll spy + status region ========== */
 const regions = ['hero','symbols','modules','docs','exports'];
-const labels = {hero:'.header', symbols:'.symbols', modules:'.text', docs:'.rdata', exports:'.exports'};
+const labels = {hero:'overview', symbols:'notes', modules:'projects', docs:'writings', exports:'contact'};
 function spy(){
   const y = main.scrollTop + 100;
   let active = regions[0];
@@ -771,7 +751,7 @@ document.getElementById('menuToggle').addEventListener('click', () => document.g
 /* ========== EXTENSIONS: terminal ========== */
 const term = document.getElementById('term'), termOut = document.getElementById('termOut'), termIn = document.getElementById('termIn');
 function tOpen(){ term.classList.add('on'); setTimeout(()=>termIn.focus(),100);
-  if (!termOut.dataset.init){ ln('kd> .extension load !zer0'); ln('extension !zer0 loaded — type help', 'ok'); termOut.dataset.init='1'; } }
+  if (!termOut.dataset.init){ ln('$ welcome'); ln('type "help" for commands', 'ok'); termOut.dataset.init='1'; } }
 function tClose(){ term.classList.remove('on'); }
 document.getElementById('termX').addEventListener('click', tClose);
 function ln(t, c=''){ const d = document.createElement('div'); d.textContent = t; if (c) d.className = c; termOut.appendChild(d); termOut.scrollTop = termOut.scrollHeight; }
@@ -788,7 +768,7 @@ const CMD = {
   exit: () => tClose(),
 };
 function jump(id){ const el = document.getElementById(id); if (el) main.scrollTo({top:el.offsetTop-8, behavior:'smooth'}); }
-termIn.addEventListener('keydown', e => { if (e.key === 'Enter'){ const v = termIn.value.trim(); if (v){ ln('kd> '+v); const fn = CMD[v.toLowerCase()]; if (fn) fn(); else ln('command not found: '+v,'err'); } termIn.value=''; }});
+termIn.addEventListener('keydown', e => { if (e.key === 'Enter'){ const v = termIn.value.trim(); if (v){ ln('$ '+v); const fn = CMD[v.toLowerCase()]; if (fn) fn(); else ln('command not found: '+v,'err'); } termIn.value=''; }});
 
 /* ========== EXTENSIONS: music ========== */
 const playlist = [
