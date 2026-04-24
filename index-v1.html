@@ -1,0 +1,1247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>wezo · zer0condition</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="https://avatars.githubusercontent.com/u/70964202?v=4">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+:root{
+  --bg:#08090C;
+  --bg-2:#0B0D11;
+  --surface:#0E1014;
+  --surface-2:#12151B;
+  --line:rgba(255,255,255,0.06);
+  --line-2:rgba(255,255,255,0.10);
+  --text:#E6E8EC;
+  --text-2:#9AA3B2;
+  --text-3:#6B7380;
+  --mint:#5EEAD4;
+  --mint-2:#2DD4BF;
+  --violet:#A78BFA;
+  --amber:#F5B458;
+  --red:#F87171;
+  --radius:14px;
+  --radius-sm:10px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased;font-feature-settings:"ss01","cv11"}
+body{overflow-x:hidden;min-height:100vh}
+::selection{background:rgba(94,234,212,0.25);color:#fff}
+
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+.mono{font-family:'JetBrains Mono',monospace;font-feature-settings:"ss02"}
+
+/* Grain + base ambience */
+.ambient{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.ambient::before{
+  content:'';position:absolute;inset:-20%;
+  background:
+    radial-gradient(60% 40% at 12% 10%, rgba(94,234,212,0.08), transparent 60%),
+    radial-gradient(50% 40% at 90% 88%, rgba(167,139,250,0.06), transparent 60%),
+    radial-gradient(40% 30% at 70% 20%, rgba(245,180,88,0.03), transparent 60%);
+  filter:blur(40px);
+}
+.ambient::after{
+  content:'';position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+  background-size:48px 48px;
+  mask-image: radial-gradient(ellipse at center, black 40%, transparent 85%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 40%, transparent 85%);
+}
+#canvas{position:fixed;inset:0;z-index:1;opacity:0.45;pointer-events:none}
+
+/* Layout */
+.app{position:relative;z-index:2;display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+
+/* Sidebar */
+.sidebar{
+  position:sticky;top:0;height:100vh;
+  padding:28px 22px;
+  border-right:1px solid var(--line);
+  background:linear-gradient(180deg, rgba(14,16,20,0.6), rgba(8,9,12,0.3));
+  backdrop-filter:blur(12px);
+  display:flex;flex-direction:column;gap:22px;
+  z-index:10;
+}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-mark{
+  width:38px;height:38px;border-radius:10px;
+  background:linear-gradient(135deg,#0F1217,#1A1F27);
+  border:1px solid var(--line-2);
+  display:grid;place-items:center;
+  box-shadow:inset 0 0 0 1px rgba(94,234,212,0.08), 0 6px 20px rgba(0,0,0,0.4);
+  position:relative;overflow:hidden;
+}
+.brand-mark::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(circle at 30% 30%, rgba(94,234,212,0.35), transparent 60%);
+}
+.brand-mark span{position:relative;font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--mint);font-size:14px;letter-spacing:-.02em}
+.brand-meta{display:flex;flex-direction:column;line-height:1.15}
+.brand-meta .name{font-weight:600;font-size:14px;letter-spacing:-.01em}
+.brand-meta .sub{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-3);margin-top:2px}
+
+.nav-label{
+  font-family:'JetBrains Mono',monospace;font-size:10px;
+  text-transform:uppercase;letter-spacing:0.16em;
+  color:var(--text-3);margin-top:8px;padding:0 4px;
+}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav a{
+  display:flex;align-items:center;gap:12px;
+  padding:10px 12px;border-radius:10px;
+  color:var(--text-2);font-size:14px;font-weight:500;
+  transition:color .2s ease, background .2s ease;
+  position:relative;
+}
+.nav a i{width:16px;text-align:center;font-size:13px;color:var(--text-3)}
+.nav a:hover{color:var(--text);background:rgba(255,255,255,0.025)}
+.nav a.active{color:var(--text);background:rgba(94,234,212,0.06)}
+.nav a.active i{color:var(--mint)}
+.nav a.active::before{
+  content:'';position:absolute;left:-22px;top:14px;bottom:14px;width:2px;
+  background:var(--mint);border-radius:2px;
+  box-shadow:0 0 10px rgba(94,234,212,0.6);
+}
+.nav a .kbd{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-3);opacity:0.6}
+
+.sidebar-foot{margin-top:auto;display:flex;flex-direction:column;gap:10px}
+.status-card{
+  padding:12px;border:1px solid var(--line);border-radius:12px;
+  background:linear-gradient(180deg, rgba(255,255,255,0.015), transparent);
+  font-size:12px;color:var(--text-2);
+}
+.status-card .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.status-card .row + .row{margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--mint);box-shadow:0 0 8px var(--mint);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{50%{opacity:0.4}}
+
+.socials{display:flex;gap:6px}
+.socials a{
+  flex:1;height:34px;border:1px solid var(--line);border-radius:8px;
+  display:grid;place-items:center;color:var(--text-2);
+  transition:border-color .2s, color .2s, background .2s;
+}
+.socials a:hover{border-color:var(--line-2);color:var(--text);background:rgba(255,255,255,0.02)}
+
+/* Main */
+.main{min-width:0;padding:40px 48px 140px;max-width:1280px}
+
+/* Hero */
+.hero{position:relative;padding:48px 0 56px;border-bottom:1px solid var(--line)}
+.hero-top{display:flex;align-items:center;gap:10px;margin-bottom:28px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-3)}
+.hero-top .dot{width:6px;height:6px;border-radius:50%;background:var(--mint);box-shadow:0 0 10px var(--mint)}
+.hero-grid{display:grid;grid-template-columns:1fr 320px;gap:56px;align-items:center}
+.hero h1{
+  font-size:clamp(40px,6vw,72px);font-weight:700;letter-spacing:-.035em;line-height:1.02;
+  margin-bottom:20px;
+}
+.hero h1 .accent{
+  background:linear-gradient(180deg,#F4FFFB 0%, #9EF2E0 70%, #5EEAD4 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.hero p.lead{font-size:17px;color:var(--text-2);max-width:560px;margin-bottom:28px;line-height:1.65}
+.hero-meta{display:flex;gap:24px;flex-wrap:wrap;margin-bottom:28px}
+.hero-meta .item{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-2);display:flex;align-items:center;gap:8px}
+.hero-meta .item i{color:var(--mint)}
+.hero-ctas{display:flex;gap:10px;flex-wrap:wrap}
+.btn{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:11px 18px;border-radius:10px;font-size:14px;font-weight:500;
+  border:1px solid var(--line-2);color:var(--text);
+  background:rgba(255,255,255,0.02);
+  transition:transform .15s ease, background .2s, border-color .2s;
+}
+.btn:hover{background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.18);transform:translateY(-1px)}
+.btn-primary{background:var(--mint);color:#0A0F0D;border-color:transparent;font-weight:600}
+.btn-primary:hover{background:#7FF0DC;box-shadow:0 8px 24px rgba(94,234,212,0.25)}
+.btn i{font-size:13px}
+
+.hero-portrait{
+  position:relative;width:320px;height:320px;margin-left:auto;
+}
+.hero-portrait .frame{
+  position:absolute;inset:0;border-radius:20px;
+  border:1px solid var(--line-2);
+  background:
+    radial-gradient(circle at 30% 20%, rgba(94,234,212,0.12), transparent 60%),
+    linear-gradient(180deg,#0E1014,#08090C);
+  overflow:hidden;
+}
+.hero-portrait .frame::before{
+  content:'';position:absolute;inset:0;
+  background:
+    linear-gradient(transparent 95%, rgba(94,234,212,0.08) 95%),
+    linear-gradient(90deg, transparent 95%, rgba(94,234,212,0.08) 95%);
+  background-size:40px 40px;
+  opacity:0.5;
+}
+.hero-portrait img{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:78%;height:78%;border-radius:16px;object-fit:cover;
+  box-shadow:0 20px 60px rgba(0,0,0,0.6);
+}
+.hero-portrait .tag{
+  position:absolute;top:14px;left:14px;
+  font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--mint);
+  display:flex;align-items:center;gap:6px;
+  padding:6px 10px;border-radius:6px;
+  background:rgba(0,0,0,0.5);border:1px solid rgba(94,234,212,0.2);
+}
+.hero-portrait .tag .blink{width:6px;height:6px;border-radius:50%;background:var(--mint);box-shadow:0 0 10px var(--mint);animation:pulse 1.5s infinite}
+.hero-portrait .coord{
+  position:absolute;bottom:14px;right:14px;
+  font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-3);
+  letter-spacing:0.08em;
+}
+
+/* Section header */
+.section{padding:64px 0;border-bottom:1px solid var(--line);scroll-margin-top:20px}
+.section:last-of-type{border-bottom:none}
+.section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:36px;flex-wrap:wrap}
+.section-head .title-group{display:flex;flex-direction:column;gap:8px}
+.section-eyebrow{
+  font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--mint);
+  letter-spacing:0.16em;text-transform:uppercase;display:flex;align-items:center;gap:10px;
+}
+.section-eyebrow::before{content:'';width:18px;height:1px;background:var(--mint)}
+.section-title{font-size:36px;font-weight:700;letter-spacing:-.02em;line-height:1.1}
+.section-desc{color:var(--text-2);font-size:15px;max-width:520px}
+
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.stat{
+  padding:20px;border:1px solid var(--line);border-radius:var(--radius);
+  background:linear-gradient(180deg, rgba(255,255,255,0.015), transparent);
+  display:flex;flex-direction:column;gap:8px;position:relative;overflow:hidden;
+}
+.stat::before{
+  content:'';position:absolute;inset:0;opacity:0;transition:opacity .3s;
+  background:radial-gradient(circle at 30% 10%, rgba(94,234,212,0.08), transparent 60%);
+}
+.stat:hover::before{opacity:1}
+.stat .label{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.12em}
+.stat .value{font-size:32px;font-weight:700;letter-spacing:-.02em;font-family:'JetBrains Mono',monospace;position:relative}
+.stat .value .unit{font-size:14px;color:var(--text-3);margin-left:6px;font-weight:500}
+.stat .trend{font-size:12px;color:var(--mint);display:flex;align-items:center;gap:6px;position:relative}
+.stat .trend.neutral{color:var(--text-3)}
+.stat .icon{position:absolute;top:18px;right:18px;color:var(--text-3);font-size:14px;opacity:0.5}
+
+/* Projects grid */
+.filter-tabs{display:flex;gap:6px}
+.filter-tabs button{
+  padding:7px 12px;border:1px solid var(--line);border-radius:8px;
+  background:transparent;color:var(--text-2);font-size:12px;font-family:'JetBrains Mono',monospace;
+  transition:all .2s;
+}
+.filter-tabs button:hover{color:var(--text);border-color:var(--line-2)}
+.filter-tabs button.active{background:rgba(94,234,212,0.08);color:var(--mint);border-color:rgba(94,234,212,0.25)}
+
+.projects{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.project{
+  position:relative;padding:24px;border:1px solid var(--line);border-radius:var(--radius);
+  background:linear-gradient(180deg, rgba(255,255,255,0.015), transparent);
+  transition:border-color .2s, transform .2s, background .2s;
+  overflow:hidden;display:flex;flex-direction:column;gap:14px;cursor:pointer;
+}
+.project::before{
+  content:'';position:absolute;inset:0;background:radial-gradient(400px circle at var(--mx,50%) var(--my,50%), rgba(94,234,212,0.06), transparent 40%);
+  opacity:0;transition:opacity .3s;pointer-events:none;
+}
+.project:hover{border-color:rgba(255,255,255,0.14);transform:translateY(-2px)}
+.project:hover::before{opacity:1}
+.project .top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.project .title-wrap{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.project .title{font-size:18px;font-weight:600;letter-spacing:-.01em}
+.project .title a{color:inherit}
+.project .badge{
+  font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--mint);
+  padding:3px 8px;border-radius:999px;background:rgba(94,234,212,0.08);border:1px solid rgba(94,234,212,0.2);
+  text-transform:uppercase;letter-spacing:0.08em;
+}
+.project .badge.new{color:var(--amber);background:rgba(245,180,88,0.08);border-color:rgba(245,180,88,0.2)}
+.project .badge.flagship{color:var(--violet);background:rgba(167,139,250,0.08);border-color:rgba(167,139,250,0.22)}
+.project .stats-inline{display:flex;gap:14px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-2)}
+.project .stats-inline span{display:flex;align-items:center;gap:5px}
+.project .stats-inline i{font-size:11px;color:var(--text-3)}
+.project .desc{color:var(--text-2);font-size:14px;line-height:1.6;flex:1}
+.project .tech{display:flex;gap:6px;flex-wrap:wrap}
+.project .chip{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-2);padding:4px 9px;border-radius:6px;background:rgba(255,255,255,0.03);border:1px solid var(--line)}
+.project .foot{display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px dashed var(--line);margin-top:auto}
+.project .lang{display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-2)}
+.project .lang .dot-c{width:8px;height:8px;border-radius:50%}
+.project .link{display:flex;align-items:center;gap:6px;color:var(--mint);font-size:12px;font-family:'JetBrains Mono',monospace;transition:gap .2s}
+.project:hover .link{gap:10px}
+.project.featured{grid-column:span 2}
+.project.featured .title{font-size:22px}
+
+/* Blog */
+.blog-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.blog{
+  display:flex;gap:20px;padding:24px;border:1px solid var(--line);border-radius:var(--radius);
+  transition:all .2s;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);
+  align-items:flex-start;
+}
+.blog:hover{border-color:rgba(255,255,255,0.14);transform:translateY(-2px)}
+.blog .icon-box{
+  flex-shrink:0;width:48px;height:48px;border-radius:10px;
+  background:linear-gradient(135deg, rgba(94,234,212,0.08), rgba(167,139,250,0.06));
+  border:1px solid rgba(94,234,212,0.15);
+  display:grid;place-items:center;color:var(--mint);font-size:18px;
+}
+.blog .cat{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:8px;display:flex;gap:12px}
+.blog .cat .dot-s{width:4px;height:4px;border-radius:50%;background:var(--text-3);align-self:center}
+.blog h3{font-size:17px;font-weight:600;letter-spacing:-.01em;margin-bottom:8px;line-height:1.35}
+.blog p{font-size:14px;color:var(--text-2);line-height:1.6;margin-bottom:14px}
+.blog .more{color:var(--mint);font-size:12px;font-family:'JetBrains Mono',monospace;display:flex;align-items:center;gap:6px;transition:gap .2s}
+.blog:hover .more{gap:10px}
+
+/* Timeline */
+.timeline{position:relative;margin-left:12px}
+.timeline::before{content:'';position:absolute;left:5px;top:6px;bottom:6px;width:1px;background:var(--line-2)}
+.tl-item{position:relative;padding-left:36px;padding-bottom:32px}
+.tl-item:last-child{padding-bottom:0}
+.tl-item::before{
+  content:'';position:absolute;left:0;top:6px;width:11px;height:11px;border-radius:50%;
+  background:var(--bg);border:2px solid var(--mint);box-shadow:0 0 0 4px rgba(94,234,212,0.08);
+}
+.tl-item .date{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--mint);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:6px}
+.tl-item h4{font-size:17px;font-weight:600;margin-bottom:8px;letter-spacing:-.01em}
+.tl-item p{color:var(--text-2);font-size:14px;line-height:1.65}
+.tl-item p + p{margin-top:6px}
+
+/* Focus areas */
+.focus-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.focus{
+  padding:24px;border:1px solid var(--line);border-radius:var(--radius);
+  background:linear-gradient(180deg, rgba(255,255,255,0.015), transparent);
+  display:flex;flex-direction:column;gap:12px;transition:border-color .2s, transform .2s;
+}
+.focus:hover{border-color:rgba(255,255,255,0.14);transform:translateY(-2px)}
+.focus .ic{
+  width:42px;height:42px;border-radius:10px;display:grid;place-items:center;
+  background:rgba(94,234,212,0.06);border:1px solid rgba(94,234,212,0.15);
+  color:var(--mint);font-size:16px;
+}
+.focus h4{font-size:16px;font-weight:600;letter-spacing:-.005em}
+.focus p{color:var(--text-2);font-size:13px;line-height:1.6}
+.focus .keywords{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto;padding-top:8px}
+.focus .kw{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-3);padding:3px 7px;border-radius:6px;background:rgba(255,255,255,0.025);border:1px solid var(--line)}
+
+/* Contact */
+.contact-wrap{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.contact-card{padding:28px;border:1px solid var(--line);border-radius:var(--radius);background:linear-gradient(180deg, rgba(255,255,255,0.015), transparent)}
+.contact-card h3{font-size:22px;font-weight:700;letter-spacing:-.02em;margin-bottom:8px}
+.contact-card p{color:var(--text-2);font-size:14px;margin-bottom:20px}
+.contact-links{display:flex;flex-direction:column;gap:8px}
+.contact-link{
+  display:flex;align-items:center;gap:12px;padding:14px;border:1px solid var(--line);border-radius:10px;
+  transition:border-color .2s, background .2s;
+}
+.contact-link:hover{border-color:var(--line-2);background:rgba(255,255,255,0.02)}
+.contact-link .ic{width:36px;height:36px;border-radius:8px;display:grid;place-items:center;background:rgba(255,255,255,0.03);color:var(--mint)}
+.contact-link .lbl{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.1em}
+.contact-link .val{font-size:14px;font-weight:500;margin-top:2px}
+.contact-link .arrow{margin-left:auto;color:var(--text-3);transition:transform .2s, color .2s}
+.contact-link:hover .arrow{color:var(--mint);transform:translateX(4px)}
+
+/* Floating controls */
+.fab-stack{position:fixed;bottom:28px;right:28px;display:flex;flex-direction:column;gap:10px;z-index:200}
+.fab{
+  width:46px;height:46px;border-radius:12px;
+  background:rgba(14,16,20,0.85);border:1px solid var(--line-2);
+  color:var(--text-2);display:grid;place-items:center;
+  backdrop-filter:blur(12px);transition:all .2s;
+}
+.fab:hover{color:var(--mint);border-color:rgba(94,234,212,0.3);background:rgba(14,16,20,0.95)}
+.fab.active{color:var(--mint);border-color:rgba(94,234,212,0.5);box-shadow:0 0 0 1px rgba(94,234,212,0.2), 0 8px 28px rgba(0,0,0,0.5)}
+.fab.playing i{animation:spinSlow 3s linear infinite}
+@keyframes spinSlow{to{transform:rotate(360deg)}}
+
+/* Terminal */
+.terminal{
+  position:fixed;left:50%;bottom:24px;transform:translate(-50%,130%);opacity:0;pointer-events:none;
+  width:min(820px,94vw);max-height:480px;
+  background:rgba(11,13,17,0.95);border:1px solid var(--line-2);border-radius:14px;
+  backdrop-filter:blur(20px);z-index:150;
+  box-shadow:0 30px 80px rgba(0,0,0,0.6);
+  transition:transform .35s cubic-bezier(.2,.8,.2,1), opacity .3s;
+  display:flex;flex-direction:column;
+}
+.terminal.active{transform:translate(-50%,0);opacity:1;pointer-events:auto}
+.terminal-head{
+  display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);
+  gap:10px;
+}
+.term-dots{display:flex;gap:6px}
+.term-dots span{width:10px;height:10px;border-radius:50%}
+.term-dots .r{background:#EF5F57} .term-dots .y{background:#F6BD2D} .term-dots .g{background:#29C941}
+.term-title{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-2);margin-left:8px}
+.term-close{margin-left:auto;color:var(--text-3);background:none;border:none;font-size:16px;padding:4px 8px;border-radius:6px}
+.term-close:hover{color:var(--text);background:rgba(255,255,255,0.05)}
+.terminal-body{padding:16px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--text-2);overflow-y:auto;flex:1;max-height:300px}
+.terminal-body div{margin-bottom:3px;white-space:pre-wrap;word-break:break-word}
+.terminal-body .success{color:var(--mint)}
+.terminal-body .err{color:var(--red)}
+.terminal-body .dim{color:var(--text-3)}
+.terminal-input{display:flex;align-items:center;padding:10px 16px;border-top:1px solid var(--line);gap:8px;font-family:'JetBrains Mono',monospace;font-size:13px}
+.terminal-input .prompt{color:var(--mint)}
+.terminal-input input{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-family:inherit;font-size:13px}
+
+/* Music modal */
+.modal{position:fixed;inset:0;z-index:300;display:none;align-items:center;justify-content:center}
+.modal.active{display:flex}
+.modal-bg{position:absolute;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px)}
+.modal-win{
+  position:relative;z-index:1;width:min(380px,92vw);
+  padding:24px;border-radius:16px;
+  background:linear-gradient(180deg, #12151B, #0B0D11);
+  border:1px solid var(--line-2);
+  box-shadow:0 30px 80px rgba(0,0,0,0.7);
+}
+.mw-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.mw-head h4{font-size:13px;font-family:'JetBrains Mono',monospace;color:var(--text-2);text-transform:uppercase;letter-spacing:0.15em}
+.mw-close{background:none;border:1px solid var(--line);color:var(--text-2);width:28px;height:28px;border-radius:6px;font-size:12px}
+.mw-close:hover{color:var(--text);border-color:var(--line-2)}
+
+.art{
+  width:100%;aspect-ratio:1;border-radius:12px;margin-bottom:16px;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(94,234,212,0.18), transparent 55%),
+    radial-gradient(circle at 70% 80%, rgba(167,139,250,0.12), transparent 60%),
+    linear-gradient(135deg, #0E1014, #1A1F27);
+  border:1px solid var(--line);
+  display:grid;place-items:center;overflow:hidden;position:relative;
+}
+.art i{font-size:70px;color:var(--mint);opacity:0.6;transition:transform .3s}
+.art.playing i{animation:spinSlow 4s linear infinite}
+.art::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(circle at center, transparent 40%, rgba(0,0,0,0.4) 100%);
+}
+.track-info{text-align:center;margin-bottom:16px}
+.track-info .name{font-size:16px;font-weight:600;margin-bottom:4px;letter-spacing:-.01em}
+.track-info .artist{font-size:12px;color:var(--text-3);font-family:'JetBrains Mono',monospace}
+.prog{margin-bottom:14px;cursor:pointer}
+.prog-bar{width:100%;height:3px;border-radius:2px;background:rgba(255,255,255,0.06);overflow:hidden;cursor:pointer}
+.prog-fill{height:100%;background:var(--mint);width:0%;border-radius:2px;transition:width .1s linear}
+.prog-time{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-3);margin-top:6px}
+.music-ctrl{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:14px}
+.mbtn{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--text);display:grid;place-items:center;transition:all .2s}
+.mbtn:hover{border-color:var(--mint);color:var(--mint)}
+.mbtn.play{width:48px;height:48px;background:var(--mint);color:#0A0F0D;border-color:transparent}
+.mbtn.play:hover{background:#7FF0DC;color:#0A0F0D;box-shadow:0 8px 20px rgba(94,234,212,0.3)}
+.vol{display:flex;align-items:center;gap:10px;margin-bottom:10px;color:var(--text-3);font-size:12px}
+.vol input{flex:1;-webkit-appearance:none;appearance:none;height:3px;background:rgba(255,255,255,0.06);border-radius:2px}
+.vol input::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;background:var(--mint);border-radius:50%}
+.playlist{max-height:150px;overflow-y:auto;border-top:1px solid var(--line);padding-top:10px;margin-top:6px}
+.pl-item{display:flex;align-items:center;gap:10px;padding:7px 9px;border-radius:6px;font-size:12px;color:var(--text-2);cursor:pointer;font-family:'JetBrains Mono',monospace}
+.pl-item:hover{background:rgba(255,255,255,0.03);color:var(--text)}
+.pl-item.active{background:rgba(94,234,212,0.07);color:var(--mint)}
+.pl-item i{font-size:9px;width:10px}
+
+/* Snake modal */
+.gmodal{position:fixed;inset:0;z-index:300;display:none;align-items:center;justify-content:center}
+.gmodal.active{display:flex}
+.gmodal-bg{position:absolute;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px)}
+.gmodal-win{position:relative;z-index:1;width:min(720px,94vw);padding:22px;border-radius:16px;background:#0B0D11;border:1px solid var(--line-2)}
+.gh{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.gh h4{font-family:'JetBrains Mono',monospace;color:var(--text-2);font-size:13px;text-transform:uppercase;letter-spacing:0.15em}
+.gscore{display:flex;gap:14px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-2)}
+.gscore .v{color:var(--mint)}
+#gameCanvas{width:100%;height:380px;display:block;border-radius:10px;background:#05070A;border:1px solid var(--line)}
+.gfoot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-3)}
+
+/* Mobile nav */
+.mobile-top{display:none}
+
+/* Loader */
+#loader{position:fixed;inset:0;z-index:999;display:grid;place-items:center;background:var(--bg);transition:opacity .5s, visibility .5s}
+#loader.hidden{opacity:0;visibility:hidden;pointer-events:none}
+.lcore{width:min(440px,88vw);padding:28px;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+.llogo{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:var(--mint);margin-bottom:6px;letter-spacing:0.08em}
+.lsub{font-size:12px;color:var(--text-3);margin-bottom:18px;font-family:'JetBrains Mono',monospace}
+.lterm{background:#05070A;border:1px solid var(--line);border-radius:8px;padding:12px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-2);margin-bottom:16px;min-height:110px;max-height:150px;overflow:hidden}
+.lterm div{opacity:0.3;transition:opacity .3s}
+.lterm div.active{opacity:1}
+.lterm .ok{color:var(--mint)}
+.lbar{height:2px;background:rgba(255,255,255,0.05);border-radius:2px;overflow:hidden}
+.lbar-fill{height:100%;width:0%;background:var(--mint);transition:width .3s;box-shadow:0 0 8px var(--mint)}
+.lfoot{text-align:right;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-3);margin-top:10px}
+
+/* Responsive */
+@media (max-width:1040px){
+  .app{grid-template-columns:1fr}
+  .sidebar{display:none}
+  .main{padding:84px 24px 140px}
+  .hero-grid{grid-template-columns:1fr;gap:36px}
+  .hero-portrait{width:260px;height:260px;margin:0 auto}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .projects{grid-template-columns:1fr}
+  .project.featured{grid-column:auto}
+  .blog-grid{grid-template-columns:1fr}
+  .focus-grid{grid-template-columns:1fr}
+  .contact-wrap{grid-template-columns:1fr}
+  .mobile-top{
+    display:flex;align-items:center;justify-content:space-between;
+    position:fixed;top:0;left:0;right:0;z-index:50;
+    padding:14px 20px;background:rgba(8,9,12,0.88);backdrop-filter:blur(16px);
+    border-bottom:1px solid var(--line);
+  }
+  .mobile-top .hamburger{
+    width:40px;height:40px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--text);display:grid;place-items:center;
+  }
+  .mobile-menu{
+    position:fixed;inset:0;z-index:40;background:rgba(8,9,12,0.98);backdrop-filter:blur(16px);
+    padding:70px 24px 24px;display:none;flex-direction:column;gap:8px;
+  }
+  .mobile-menu.active{display:flex}
+  .mobile-menu a{padding:16px;border:1px solid var(--line);border-radius:12px;font-size:16px;display:flex;align-items:center;gap:12px;color:var(--text-2)}
+  .mobile-menu a.active{color:var(--mint);border-color:rgba(94,234,212,0.3);background:rgba(94,234,212,0.05)}
+}
+@media (max-width:640px){
+  .main{padding:84px 16px 160px}
+  .hero h1{font-size:44px}
+  .section-title{font-size:28px}
+  .stats{grid-template-columns:1fr 1fr}
+  .fab-stack{bottom:20px;right:16px}
+  .fab{width:44px;height:44px}
+}
+
+.section[data-anim]{opacity:0;transform:translateY(20px);transition:opacity .6s ease, transform .6s cubic-bezier(.2,.8,.2,1)}
+.section[data-anim].in{opacity:1;transform:translateY(0)}
+</style>
+</head>
+<body>
+
+<!-- Loader -->
+<div id="loader">
+  <div class="lcore">
+    <div class="llogo">wezo<span id="lcur">_</span></div>
+    <div class="lsub">system.init()</div>
+    <div class="lterm" id="lterm"></div>
+    <div class="lbar"><div class="lbar-fill" id="lfill"></div></div>
+    <div class="lfoot">press any key to skip</div>
+  </div>
+</div>
+
+<div class="ambient"></div>
+<canvas id="canvas"></canvas>
+
+<!-- Mobile top bar -->
+<div class="mobile-top">
+  <div class="brand">
+    <div class="brand-mark"><span>W</span></div>
+    <div class="brand-meta"><span class="name">wezo</span><span class="sub">zer0condition</span></div>
+  </div>
+  <button class="hamburger" id="hamburger" aria-label="Menu"><i class="fas fa-bars"></i></button>
+</div>
+<div class="mobile-menu" id="mobileMenu"></div>
+
+<div class="app">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark"><span>W</span></div>
+      <div class="brand-meta">
+        <span class="name">wezo</span>
+        <span class="sub">@zer0condition</span>
+      </div>
+    </div>
+
+    <div>
+      <div class="nav-label">Navigate</div>
+      <nav class="nav" id="sideNav">
+        <a href="#home" class="active"><i class="fas fa-house"></i> Home <span class="kbd">01</span></a>
+        <a href="#focus"><i class="fas fa-crosshairs"></i> Focus <span class="kbd">02</span></a>
+        <a href="#projects"><i class="fas fa-code-branch"></i> Projects <span class="kbd">03</span></a>
+        <a href="#writings"><i class="fas fa-book-open"></i> Writings <span class="kbd">04</span></a>
+        <a href="#journey"><i class="fas fa-timeline"></i> Journey <span class="kbd">05</span></a>
+        <a href="#contact"><i class="fas fa-envelope"></i> Contact <span class="kbd">06</span></a>
+      </nav>
+    </div>
+
+    <div class="sidebar-foot">
+      <div class="status-card">
+        <div class="row"><span>Status</span><span style="display:flex;align-items:center;gap:6px;color:var(--text)"><span class="status-dot"></span>Available</span></div>
+        <div class="row"><span>Focus</span><span style="color:var(--text)">Hypervisor R&amp;D</span></div>
+        <div class="row"><span>TZ</span><span style="color:var(--text)" class="mono">GMT+8</span></div>
+      </div>
+      <div class="socials">
+        <a href="https://github.com/zer0condition" target="_blank" title="GitHub"><i class="fab fa-github"></i></a>
+        <a href="https://discord.com/users/164431138507456512" target="_blank" title="Discord"><i class="fab fa-discord"></i></a>
+        <a href="https://soundcloud.com/wezo-417623843" target="_blank" title="SoundCloud"><i class="fab fa-soundcloud"></i></a>
+        <a href="/cdn-cgi/l/email-protection#1f657a6d2f7c70717b766b767071292e5f78727e7673317c7072" title="Email"><i class="fas fa-envelope"></i></a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+
+    <!-- Hero -->
+    <section id="home" class="hero">
+      <div class="hero-top">
+        <span class="dot"></span>
+        <span>// systems · kernel · hypervisor · reverse engineering</span>
+      </div>
+      <div class="hero-grid">
+        <div>
+          <h1>Low-level research,<br><span class="accent">engineered.</span></h1>
+          <p class="lead">I'm wezo — a 19-year-old systems researcher working on Windows kernel internals, stealth hypervisors, CPU architecture, and anti-cheat / EDR circumvention. I build tooling that lives where most security products refuse to look.</p>
+          <div class="hero-meta">
+            <div class="item"><i class="fas fa-star"></i> <span id="heroStars">2.2k+</span> GitHub stars</div>
+            <div class="item"><i class="fas fa-code-branch"></i> <span id="heroRepos">21</span> public repos</div>
+            <div class="item"><i class="fas fa-users"></i> <span id="heroFollowers">790+</span> followers</div>
+          </div>
+          <div class="hero-ctas">
+            <a class="btn btn-primary" href="#projects"><i class="fas fa-arrow-down"></i> See the work</a>
+            <a class="btn" href="https://github.com/zer0condition" target="_blank"><i class="fab fa-github"></i> GitHub</a>
+            <a class="btn" href="/cdn-cgi/l/email-protection#b1cbd4c381d2dedfd5d8c5d8dedf8780f1d6dcd0d8dd9fd2dedc"><i class="fas fa-envelope"></i> Contact</a>
+          </div>
+        </div>
+        <div class="hero-portrait">
+          <div class="frame">
+            <div class="tag"><span class="blink"></span> ONLINE</div>
+            <img src="https://avatars.githubusercontent.com/u/70964202?v=4" alt="wezo">
+            <div class="coord">LAT 14.5 · LON 121.0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats strip -->
+      <div class="stats" style="margin-top:48px">
+        <div class="stat">
+          <i class="icon fas fa-star"></i>
+          <div class="label">Total stars</div>
+          <div class="value" id="statStars">2,478</div>
+          <div class="trend"><i class="fas fa-arrow-trend-up"></i> across 21 repos</div>
+        </div>
+        <div class="stat">
+          <i class="icon fas fa-microchip"></i>
+          <div class="label">Flagship</div>
+          <div class="value" style="font-size:22px;letter-spacing:-.01em;padding-top:5px">ReverseKit<span class="unit">· 753★</span></div>
+          <div class="trend neutral"><i class="fas fa-cubes"></i> x64 Dynamic RE Toolkit</div>
+        </div>
+        <div class="stat">
+          <i class="icon fas fa-shield-halved"></i>
+          <div class="label">New in 2025</div>
+          <div class="value" style="font-size:22px;letter-spacing:-.01em;padding-top:5px">Ophion<span class="unit">· VT-x</span></div>
+          <div class="trend"><i class="fas fa-bolt"></i> Stealth hypervisor</div>
+        </div>
+        <div class="stat">
+          <i class="icon fas fa-terminal"></i>
+          <div class="label">Primary languages</div>
+          <div class="value" style="font-size:22px;letter-spacing:-.01em;padding-top:5px">C / C++</div>
+          <div class="trend neutral"><i class="fas fa-gears"></i> + ASM / Rust / Py</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Focus areas -->
+    <section id="focus" class="section" data-anim>
+      <div class="section-head">
+        <div class="title-group">
+          <span class="section-eyebrow">01 — What I Work On</span>
+          <h2 class="section-title">Focus areas</h2>
+        </div>
+        <p class="section-desc">Research concentrated on the boundary between hardware, the Windows kernel, and the protections built on top of them.</p>
+      </div>
+      <div class="focus-grid">
+        <div class="focus">
+          <div class="ic"><i class="fas fa-layer-group"></i></div>
+          <h4>Kernel exploitation</h4>
+          <p>Windows internals, driver signature enforcement, PatchGuard bypass, protected process manipulation, and kernel-mode anti-cheat research.</p>
+          <div class="keywords"><span class="kw">PatchGuard</span><span class="kw">DSE</span><span class="kw">PPL</span><span class="kw">HVCI</span></div>
+        </div>
+        <div class="focus">
+          <div class="ic"><i class="fas fa-cube"></i></div>
+          <h4>Hypervisors</h4>
+          <p>Intel VT-x stealth virtualization, EPT hooking, SLAT, donor PFN tricks, and hypervisor-assisted detection evasion.</p>
+          <div class="keywords"><span class="kw">VT-x</span><span class="kw">EPT</span><span class="kw">SLAT</span><span class="kw">VBS</span></div>
+        </div>
+        <div class="focus">
+          <div class="ic"><i class="fas fa-microchip"></i></div>
+          <h4>CPU architecture</h4>
+          <p>x86_64 and ARM microarchitecture, SIMD codegen, MMU/PFN internals, control registers, and security modules like CET.</p>
+          <div class="keywords"><span class="kw">x86_64</span><span class="kw">ARM</span><span class="kw">SIMD</span><span class="kw">kCET</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Projects -->
+    <section id="projects" class="section" data-anim>
+      <div class="section-head">
+        <div class="title-group">
+          <span class="section-eyebrow">02 — Projects</span>
+          <h2 class="section-title">Selected work</h2>
+        </div>
+        <div class="filter-tabs" id="filters">
+          <button class="active" data-filter="all">all</button>
+          <button data-filter="hv">hypervisor</button>
+          <button data-filter="kernel">kernel</button>
+          <button data-filter="re">reversing</button>
+        </div>
+      </div>
+      <div class="projects" id="projects-grid"><!-- JS-rendered --></div>
+    </section>
+
+    <!-- Writings -->
+    <section id="writings" class="section" data-anim>
+      <div class="section-head">
+        <div class="title-group">
+          <span class="section-eyebrow">03 — Writings</span>
+          <h2 class="section-title">Deep dives</h2>
+        </div>
+        <p class="section-desc">Long-form, practical write-ups on the systems I pull apart.</p>
+      </div>
+      <div class="blog-grid">
+        <a href="posts/demystifying-patchguard/index.html" class="blog">
+          <div class="icon-box"><i class="fas fa-shield-halved"></i></div>
+          <div>
+            <div class="cat"><span>Kernel Security</span><span class="dot-s"></span><span>Long read</span></div>
+            <h3>Demystifying PatchGuard: An in-depth analysis through practical engineering</h3>
+            <p>A comprehensive analysis of Microsoft's kernel integrity feature — how it schedules checks, what it protects, and the pressure points attackers have probed.</p>
+            <div class="more">Read article <i class="fas fa-arrow-right"></i></div>
+          </div>
+        </a>
+        <a href="posts/reversing-a-signed-driver/index.html" class="blog">
+          <div class="icon-box"><i class="fas fa-microchip"></i></div>
+          <div>
+            <div class="cat"><span>Reverse Engineering</span><span class="dot-s"></span><span>Medium read</span></div>
+            <h3>Reversing a signed kernel driver ft. VMProtect 3.6</h3>
+            <p>Walkthrough of cracking a VMProtect-packed, signed driver — devirt, handler recovery, and the structural tells that make vmprotected binaries tractable.</p>
+            <div class="more">Read article <i class="fas fa-arrow-right"></i></div>
+          </div>
+        </a>
+      </div>
+    </section>
+
+    <!-- Journey -->
+    <section id="journey" class="section" data-anim>
+      <div class="section-head">
+        <div class="title-group">
+          <span class="section-eyebrow">04 — Journey</span>
+          <h2 class="section-title">The long road down</h2>
+        </div>
+        <p class="section-desc">From swapping Windows installations for fun to writing stealth hypervisors.</p>
+      </div>
+      <div class="timeline">
+        <div class="tl-item">
+          <div class="date">2015 · Beginning</div>
+          <h4>First build at nine</h4>
+          <p>Obsessed with computers from childhood. Assembled my first PC from individual components at nine years old — the moment software stopped feeling like magic and started feeling like machinery.</p>
+        </div>
+        <div class="tl-item">
+          <div class="date">2015–2019 · Tinkering</div>
+          <h4>OS installs, partitions, neighbourhood repairs</h4>
+          <p>Rotated through Windows XP, 7, and 8 weekly for fun. Fixed neighbours' and my father's office machines when they broke — the cheapest way to earn hands-on hours.</p>
+        </div>
+        <div class="tl-item">
+          <div class="date">2020 · The rabbit hole</div>
+          <h4>Low-level languages during lockdown</h4>
+          <p>Pandemic lockdown. Picked up C, C++ and x86 assembly. Self-taught virtual memory, paging, and how the kernel actually talks to the processor.</p>
+        </div>
+        <div class="tl-item">
+          <div class="date">2021–2023 · Kernel</div>
+          <h4>Windows kernel development</h4>
+          <p>Deep dive into kernel internals. Built custom tooling and reverse-engineered the internals of well-known anti-cheats, AVs, EDRs and XDRs to understand where their seams are.</p>
+        </div>
+        <div class="tl-item">
+          <div class="date">2024–2026 · Hypervisors &amp; CPUs</div>
+          <h4>Virtualization, CPU security modules, and new tooling</h4>
+          <p>Shifted toward hypervisor research and precise CPU-level control. Shipped <strong style="color:var(--mint)">Ophion</strong> (stealth VT-x HV), <strong style="color:var(--mint)">BusterCall</strong> (HVCI bypass via donor PFN swaps), <strong style="color:var(--mint)">xSIMD</strong> (x86/ARM/RISC-V SIMD assembler), and <strong style="color:var(--mint)">NTMemory</strong> (usermode NT explorer).</p>
+          <p>Also picked up digital music production as a parallel creative outlet.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Contact -->
+    <section id="contact" class="section" data-anim>
+      <div class="section-head">
+        <div class="title-group">
+          <span class="section-eyebrow">05 — Contact</span>
+          <h2 class="section-title">Say hello</h2>
+        </div>
+        <p class="section-desc">Open to interesting research collaborations, hypervisor work, and serious questions about low-level security.</p>
+      </div>
+      <div class="contact-wrap">
+        <div class="contact-card">
+          <h3>Direct</h3>
+          <p>Fastest routes. I actually read these.</p>
+          <div class="contact-links">
+            <a class="contact-link" href="/cdn-cgi/l/email-protection#3349564103505c5d575a475a5c5d050273545e525a5f1d505c5e">
+              <div class="ic"><i class="fas fa-envelope"></i></div>
+              <div><div class="lbl">Email</div><div class="val"><span class="__cf_email__" data-cfemail="1c66796e2c7f73727875687573722a2d5c7b717d7570327f7371">[email&#160;protected]</span></div></div>
+              <i class="fas fa-arrow-right arrow"></i>
+            </a>
+            <a class="contact-link" href="https://discord.com/users/164431138507456512" target="_blank">
+              <div class="ic"><i class="fab fa-discord"></i></div>
+              <div><div class="lbl">Discord</div><div class="val">@zer0condition</div></div>
+              <i class="fas fa-arrow-right arrow"></i>
+            </a>
+          </div>
+        </div>
+        <div class="contact-card">
+          <h3>Elsewhere</h3>
+          <p>Code, research drops, and side creative work.</p>
+          <div class="contact-links">
+            <a class="contact-link" href="https://github.com/zer0condition" target="_blank">
+              <div class="ic"><i class="fab fa-github"></i></div>
+              <div><div class="lbl">GitHub</div><div class="val">@zer0condition</div></div>
+              <i class="fas fa-arrow-right arrow"></i>
+            </a>
+            <a class="contact-link" href="https://soundcloud.com/wezo-417623843" target="_blank">
+              <div class="ic"><i class="fab fa-soundcloud"></i></div>
+              <div><div class="lbl">SoundCloud</div><div class="val">wezo</div></div>
+              <i class="fas fa-arrow-right arrow"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div style="margin-top:48px;padding-top:28px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-3);flex-wrap:wrap;gap:12px">
+      <div>© 2026 wezo · zer0condition · built from a terminal</div>
+      <div>[ press <span style="color:var(--mint)">`</span> to open terminal · <span style="color:var(--mint)">M</span> music · <span style="color:var(--mint)">G</span> game ]</div>
+    </div>
+  </main>
+</div>
+
+<!-- Floating controls -->
+<div class="fab-stack">
+  <button class="fab" id="musicFab" title="Music (M)"><i class="fas fa-music"></i></button>
+  <button class="fab" id="gameFab" title="Snake (G)"><i class="fas fa-gamepad"></i></button>
+  <button class="fab" id="termFab" title="Terminal (`)"><i class="fas fa-terminal"></i></button>
+</div>
+
+<!-- Terminal -->
+<div class="terminal" id="terminal">
+  <div class="terminal-head">
+    <div class="term-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+    <div class="term-title">zer0condition@research ~ $</div>
+    <button class="term-close" id="termClose">×</button>
+  </div>
+  <div class="terminal-body" id="termOut"></div>
+  <div class="terminal-input">
+    <span class="prompt">❯</span>
+    <input id="termIn" placeholder="type 'help' for commands…" autocomplete="off">
+  </div>
+</div>
+
+<!-- Music modal -->
+<div class="modal" id="musicModal">
+  <div class="modal-bg" data-close></div>
+  <div class="modal-win">
+    <div class="mw-head"><h4><i class="fas fa-music" style="color:var(--mint);margin-right:8px"></i>Now playing</h4><button class="mw-close" data-close>×</button></div>
+    <div class="art" id="art"><i class="fas fa-compact-disc"></i></div>
+    <div class="track-info">
+      <div class="name" id="trackName">No track loaded</div>
+      <div class="artist" id="trackArtist">—</div>
+    </div>
+    <div class="prog">
+      <div class="prog-bar" id="progBar"><div class="prog-fill" id="progFill"></div></div>
+      <div class="prog-time"><span id="curTime">0:00</span><span id="durTime">0:00</span></div>
+    </div>
+    <div class="music-ctrl">
+      <button class="mbtn" id="prevBtn"><i class="fas fa-backward-step"></i></button>
+      <button class="mbtn play" id="playBtn"><i class="fas fa-play"></i></button>
+      <button class="mbtn" id="nextBtn"><i class="fas fa-forward-step"></i></button>
+    </div>
+    <div class="vol">
+      <i class="fas fa-volume-low"></i>
+      <input type="range" id="vol" min="0" max="100" value="80">
+      <i class="fas fa-volume-high"></i>
+    </div>
+    <div class="playlist" id="playlist"></div>
+  </div>
+</div>
+
+<!-- Game modal -->
+<div class="gmodal" id="gameModal">
+  <div class="gmodal-bg" data-gclose></div>
+  <div class="gmodal-win">
+    <div class="gh">
+      <h4><i class="fas fa-gamepad" style="color:var(--mint);margin-right:8px"></i>snake.bin</h4>
+      <div class="gscore"><span>SCORE: <span class="v" id="gScore">0</span></span><span>BEST: <span class="v" id="gBest">0</span></span></div>
+      <button class="mw-close" data-gclose>×</button>
+    </div>
+    <canvas id="gameCanvas" width="700" height="380"></canvas>
+    <div class="gfoot">
+      <span>arrows / wasd · r to restart</span>
+      <button class="btn" id="restartBtn" style="padding:6px 12px;font-size:12px"><i class="fas fa-rotate"></i> Restart</button>
+    </div>
+  </div>
+</div>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+/* ===== Projects data ===== */
+const PROJECTS = [
+  { name:'ReverseKit', stars:753, forks:109, lang:'C++', color:'#F34B7D', cat:['re'],
+    desc:"x64 Dynamic Reverse Engineering Toolkit. Intercepts syscalls, thread creation, URLs and commands at runtime. ImGui-driven interface with hooking library, anti-BSOD, and common debugger-check bypasses.",
+    tech:['C++','ImGui','syscall-hooks','runtime-analysis'], badge:'FLAGSHIP', badgeType:'flagship', featured:true },
+  { name:'Ophion', stars:203, forks:29, lang:'C', color:'#555555', cat:['hv','kernel'],
+    desc:"Stealth-focused Intel VT-x hypervisor engineered against EACs, BattlEye, ACs and AVs. EPT hooks, SLAT, and careful hypercall surface hardening.",
+    tech:['VT-x','EPT','SLAT','stealth'], badge:'NEW · 2025', badgeType:'new' },
+  { name:'BusterCall', stars:106, forks:12, lang:'C', color:'#555555', cat:['hv','kernel'],
+    desc:"\"Bypassing\" HVCI via donor PFN swaps to mutate read-only code pages. Supports calling chained kernel functions with kCET and SLAT awareness.",
+    tech:['HVCI','PFN','kCET','SLAT'], badge:'NEW', badgeType:'new' },
+  { name:'mhydeath', stars:406, forks:72, lang:'C++', color:'#F34B7D', cat:['kernel'],
+    desc:"Abusing mhyprotect to kill AVs, EDRs, XDRs and protected processes. Research tool demonstrating signed-driver abuse pathways.",
+    tech:['Signed drivers','EDR bypass','mhyprotect'] },
+  { name:'GDRVLoader', stars:319, forks:79, lang:'C', color:'#555555', cat:['kernel'],
+    desc:"Unsigned driver loader built on CVE-2018-19320. Defeats Windows Driver Signature Enforcement on supported targets.",
+    tech:['CVE-2018-19320','DSE bypass','Loader'] },
+  { name:'Shadow-Regions-Bypass', stars:301, forks:95, lang:'C++', color:'#F34B7D', cat:['kernel','re'],
+    desc:"External research base for bypassing Shadow Regions in Valorant's anti-cheat. Demonstrates memory-visibility quirks and mitigation gaps.",
+    tech:['Anti-cheat','Valorant','Memory'] },
+  { name:'NVDrv', stars:274, forks:71, lang:'C++', color:'#F34B7D', cat:['kernel','re'],
+    desc:"Abusing an NVIDIA driver for arbitrary physical/virtual memory access and control-register manipulation. Classic vendor-driver-as-primitive.",
+    tech:['NVIDIA','PhysMem','CR manipulation'] },
+  { name:'NTMemory', stars:33, forks:4, lang:'C++', color:'#F34B7D', cat:['re','kernel'],
+    desc:"Usermode NT Explorer — query kernel addresses, translate virtual to physical, inspect the PFN database, and explore MMU offsets interactively.",
+    tech:['MMU','PFN','VA→PA','Explorer'], badge:'NEW', badgeType:'new' },
+  { name:'xSIMD', stars:8, forks:3, lang:'C', color:'#555555', cat:['re'],
+    desc:"Cross-platform SIMD assembler. Emits unified vector instructions to native x86, ARM and RISC-V machine code from a single frontend.",
+    tech:['SIMD','x86','ARM','RISC-V'], badge:'NEW', badgeType:'new' },
+  { name:'ZeroHVCI', stars:150, forks:42, lang:'C', color:'#555555', cat:['hv','kernel'],
+    desc:"Arbitrary kernel R/W and function calling inside HVCI environments without admin or kernel drivers — research into VBS' gaps.",
+    tech:['HVCI','R/W primitive','No-driver'] },
+];
+
+/* ===== Smooth sidebar / mobile menu ===== */
+const sideLinks = document.querySelectorAll('#sideNav a');
+const sections = [...document.querySelectorAll('main section[id]')];
+
+function syncNav(){
+  const y = window.scrollY + 120;
+  let active = sections[0]?.id;
+  for (const s of sections){ if (s.offsetTop <= y) active = s.id; }
+  sideLinks.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#'+active));
+  document.querySelectorAll('#mobileMenu a').forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#'+active));
+}
+window.addEventListener('scroll', syncNav, {passive:true});
+
+// Build mobile menu from sidebar nav
+const mm = document.getElementById('mobileMenu');
+sideLinks.forEach(a => { const c = a.cloneNode(true); mm.appendChild(c); });
+document.getElementById('hamburger').addEventListener('click', ()=> mm.classList.toggle('active'));
+mm.addEventListener('click', e => { if (e.target.closest('a')) mm.classList.remove('active'); });
+
+/* ===== Scroll reveal ===== */
+const io = new IntersectionObserver((entries)=>{
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('in'); });
+}, {threshold:0.08});
+document.querySelectorAll('[data-anim]').forEach(el => io.observe(el));
+
+/* ===== Project render + filter ===== */
+const grid = document.getElementById('projects-grid');
+function renderProjects(filter='all'){
+  const items = PROJECTS.filter(p => filter==='all' || p.cat.includes(filter));
+  grid.innerHTML = items.map(p => `
+    <article class="project ${p.featured?'featured':''}" data-cat="${p.cat.join(' ')}" onclick="window.open('https://github.com/zer0condition/${p.name}','_blank')">
+      <div class="top">
+        <div class="title-wrap">
+          <div class="title"><a href="https://github.com/zer0condition/${p.name}" target="_blank" onclick="event.stopPropagation()">${p.name}</a></div>
+          ${p.badge?`<span class="badge ${p.badgeType||''}">${p.badge}</span>`:''}
+        </div>
+        <div class="stats-inline">
+          <span><i class="fas fa-star"></i> ${p.stars.toLocaleString()}</span>
+          <span><i class="fas fa-code-branch"></i> ${p.forks}</span>
+        </div>
+      </div>
+      <div class="desc">${p.desc}</div>
+      <div class="tech">${p.tech.map(t=>`<span class="chip">${t}</span>`).join('')}</div>
+      <div class="foot">
+        <div class="lang"><span class="dot-c" style="background:${p.color}"></span>${p.lang}</div>
+        <div class="link">View on GitHub <i class="fas fa-arrow-right"></i></div>
+      </div>
+    </article>
+  `).join('');
+  // Mouse-follow glow
+  grid.querySelectorAll('.project').forEach(el => {
+    el.addEventListener('mousemove', e => {
+      const r = el.getBoundingClientRect();
+      el.style.setProperty('--mx', (e.clientX - r.left)+'px');
+      el.style.setProperty('--my', (e.clientY - r.top)+'px');
+    });
+  });
+}
+renderProjects();
+
+document.querySelectorAll('#filters button').forEach(b => b.addEventListener('click', ()=>{
+  document.querySelectorAll('#filters button').forEach(x => x.classList.remove('active'));
+  b.classList.add('active');
+  renderProjects(b.dataset.filter);
+}));
+
+/* Update hero stat aggregates */
+(function(){
+  const total = PROJECTS.reduce((s,p)=>s+p.stars,0);
+  document.getElementById('statStars').textContent = total.toLocaleString();
+  document.getElementById('heroStars').textContent = (total/1000).toFixed(1)+'k+';
+})();
+
+/* ===== Background canvas: subtle particle + grid drift ===== */
+(function(){
+  const c = document.getElementById('canvas');
+  const ctx = c.getContext('2d');
+  let w,h,dpr,ps=[];
+  function resize(){ dpr=Math.min(window.devicePixelRatio||1,2); w=c.width=innerWidth*dpr; h=c.height=innerHeight*dpr; c.style.width=innerWidth+'px'; c.style.height=innerHeight+'px'; }
+  resize(); addEventListener('resize', resize);
+  const N = 80;
+  for (let i=0;i<N;i++) ps.push({ x:Math.random()*w, y:Math.random()*h, vx:(Math.random()-0.5)*0.18*dpr, vy:(Math.random()-0.5)*0.18*dpr, r:(Math.random()*1.4+0.4)*dpr });
+  function frame(){
+    ctx.clearRect(0,0,w,h);
+    for (const p of ps){
+      p.x += p.vx; p.y += p.vy;
+      if (p.x<0||p.x>w) p.vx*=-1;
+      if (p.y<0||p.y>h) p.vy*=-1;
+      ctx.fillStyle = 'rgba(94,234,212,0.55)';
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
+    }
+    // connect close points
+    for (let i=0;i<ps.length;i++){
+      for (let j=i+1;j<ps.length;j++){
+        const a=ps[i],b=ps[j]; const dx=a.x-b.x, dy=a.y-b.y; const d=Math.hypot(dx,dy);
+        if (d<120*dpr){ ctx.strokeStyle = `rgba(94,234,212,${0.08*(1-d/(120*dpr))})`; ctx.lineWidth=dpr*0.6; ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke(); }
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+  frame();
+})();
+
+/* ===== Terminal ===== */
+const term = document.getElementById('terminal');
+const termOut = document.getElementById('termOut');
+const termIn = document.getElementById('termIn');
+const termFab = document.getElementById('termFab');
+function termOpen(){ term.classList.add('active'); termFab.classList.add('active'); setTimeout(()=>termIn.focus(), 100); if (!termOut.dataset.init){ line('wezo@research ~ $ booting…'); line('OK — authenticated as zer0condition', 'success'); line("type 'help' for commands", 'dim'); termOut.dataset.init='1'; } }
+function termClose(){ term.classList.remove('active'); termFab.classList.remove('active'); }
+termFab.addEventListener('click', ()=> term.classList.contains('active') ? termClose() : termOpen());
+document.getElementById('termClose').addEventListener('click', termClose);
+function line(t, cls=''){ const d=document.createElement('div'); d.textContent=t; if (cls) d.className=cls; termOut.appendChild(d); termOut.scrollTop=termOut.scrollHeight; }
+const CMD = {
+  help: ()=> line('commands: about · projects · stars · repos · writings · contact · social · whoami · clear · exit'),
+  about: ()=> line('wezo · 19 · systems researcher · kernel / hypervisor / reversing. GMT+8.'),
+  projects: ()=>{ line('— selected work —', 'success'); PROJECTS.forEach(p=> line(`  ${p.name.padEnd(24)} ★ ${String(p.stars).padStart(4)}   ${p.cat.join(',')}`)); },
+  stars: ()=> line('total stars: ' + PROJECTS.reduce((s,p)=>s+p.stars,0).toLocaleString(), 'success'),
+  repos: ()=> { location.hash='#projects'; line('→ scrolled to /projects', 'success'); },
+  writings: ()=> { location.hash='#writings'; line('→ scrolled to /writings', 'success'); },
+  contact: ()=> { location.hash='#contact'; line('→ scrolled to /contact', 'success'); },
+  social: ()=> { line('github:     github.com/zer0condition'); line('discord:    @zer0condition'); line('soundcloud: /wezo-417623843'); line('email:      zer0condition61@gmail.com'); },
+  whoami: ()=> line('wezo@research'),
+  clear: ()=>{ termOut.innerHTML=''; },
+  exit: ()=>{ termClose(); },
+};
+termIn.addEventListener('keydown', e=>{
+  if (e.key==='Enter'){
+    const v = termIn.value.trim();
+    if (v){
+      line('❯ '+v);
+      const fn = CMD[v.toLowerCase()];
+      if (fn) fn(); else line(`command not found: ${v}`, 'err');
+    }
+    termIn.value='';
+  }
+});
+addEventListener('keydown', e=>{
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === '`'){ e.preventDefault(); term.classList.contains('active') ? termClose() : termOpen(); }
+  if (e.key === 'm' || e.key === 'M'){ mToggle(); }
+  if (e.key === 'g' || e.key === 'G'){ gToggle(); }
+});
+
+/* ===== Music ===== */
+const playlist = [
+  { name:'Critical Acclaim', artist:'Avenged Sevenfold', src:'songs/Avenged Sevenfold -Critical Acclaim.mp3' },
+  { name:'Carry on Wayward Son', artist:'Kansas', src:'songs/Kansas -Carry on Wayward Son.mp3' },
+  { name:'Holy Wars', artist:'Megadeth', src:'songs/Megadeth -Holy Wars.mp3' },
+  { name:'Ride The Lightning', artist:'Metallica', src:'songs/Metallica -Ride The Lightning.mp3' },
+  { name:'Cowboys from Hell', artist:'Pantera', src:'songs/Pantera -Cowboys from Hell.mp3' },
+];
+const audio = new Audio();
+audio.volume = 0.6;
+let cur = 0, playing = false;
+const $ = id => document.getElementById(id);
+const musicModal = $('musicModal'), musicFab = $('musicFab'), art = $('art');
+function mOpen(){ musicModal.classList.add('active'); musicFab.classList.add('active'); }
+function mClose(){ musicModal.classList.remove('active'); musicFab.classList.remove('active'); }
+function mToggle(){ musicModal.classList.contains('active') ? mClose() : mOpen(); }
+musicFab.addEventListener('click', mToggle);
+musicModal.querySelectorAll('[data-close]').forEach(el => el.addEventListener('click', mClose));
+
+function renderPlaylist(){
+  $('playlist').innerHTML = playlist.map((t,i)=>`<div class="pl-item ${i===cur?'active':''}" data-i="${i}"><i class="fas ${i===cur&&playing?'fa-pause':'fa-play'}"></i> ${t.name} <span style="margin-left:auto;color:var(--text-3)">${t.artist}</span></div>`).join('');
+  $('playlist').querySelectorAll('.pl-item').forEach(el => el.addEventListener('click', ()=>{ cur=+el.dataset.i; load(); play(); }));
+}
+function load(){ const t=playlist[cur]; audio.src=t.src; $('trackName').textContent=t.name; $('trackArtist').textContent=t.artist; renderPlaylist(); }
+function play(){ audio.play(); playing=true; $('playBtn').innerHTML='<i class="fas fa-pause"></i>'; art.classList.add('playing'); musicFab.classList.add('playing'); renderPlaylist(); }
+function pause(){ audio.pause(); playing=false; $('playBtn').innerHTML='<i class="fas fa-play"></i>'; art.classList.remove('playing'); musicFab.classList.remove('playing'); renderPlaylist(); }
+$('playBtn').addEventListener('click', ()=> playing ? pause() : play());
+$('nextBtn').addEventListener('click', ()=>{ cur=(cur+1)%playlist.length; load(); play(); });
+$('prevBtn').addEventListener('click', ()=>{ cur=(cur-1+playlist.length)%playlist.length; load(); play(); });
+audio.addEventListener('timeupdate', ()=>{ $('progFill').style.width = (audio.currentTime/audio.duration*100||0)+'%'; $('curTime').textContent=fmt(audio.currentTime); });
+audio.addEventListener('loadedmetadata', ()=> $('durTime').textContent=fmt(audio.duration));
+audio.addEventListener('ended', ()=>{ cur=(cur+1)%playlist.length; load(); play(); });
+$('progBar').addEventListener('click', e=>{ const r=e.currentTarget.getBoundingClientRect(); audio.currentTime = (e.clientX-r.left)/r.width * audio.duration; });
+$('vol').addEventListener('input', e=> audio.volume = e.target.value/100);
+function fmt(s){ if(!isFinite(s))return '0:00'; const m=Math.floor(s/60), ss=Math.floor(s%60); return m+':'+String(ss).padStart(2,'0'); }
+load();
+
+/* Save/restore music state */
+function saveMS(){ localStorage.setItem('ms', JSON.stringify({ i:cur, t:audio.currentTime, p:playing, v:audio.volume })); }
+try{
+  const s = JSON.parse(localStorage.getItem('ms')||'null');
+  if (s){ cur=s.i||0; audio.volume=s.v??0.6; $('vol').value=audio.volume*100; load();
+    audio.addEventListener('canplay', ()=>{ audio.currentTime = s.t||0; if (s.p){ play(); } }, {once:true}); }
+}catch(e){}
+addEventListener('beforeunload', saveMS);
+setInterval(()=>{ if (playing) saveMS(); }, 1000);
+
+/* ===== Snake ===== */
+const gmodal = $('gameModal'), gameFab = $('gameFab');
+function gOpen(){ gmodal.classList.add('active'); gameFab.classList.add('active'); startGame(); }
+function gClose(){ gmodal.classList.remove('active'); gameFab.classList.remove('active'); stopGame(); }
+function gToggle(){ gmodal.classList.contains('active') ? gClose() : gOpen(); }
+gameFab.addEventListener('click', gToggle);
+gmodal.querySelectorAll('[data-gclose]').forEach(el => el.addEventListener('click', gClose));
+$('restartBtn').addEventListener('click', ()=>{ stopGame(); startGame(); });
+
+let gs=null, ganim=null;
+const gcv = $('gameCanvas'), gctx = gcv.getContext('2d');
+function fitCanvas(){
+  const dpr = Math.min(devicePixelRatio||1,2);
+  const w = gcv.clientWidth, h = gcv.clientHeight;
+  gcv.width = w*dpr; gcv.height = h*dpr;
+  gctx.setTransform(dpr,0,0,dpr,0,0);
+}
+function initGame(){
+  fitCanvas();
+  const W = gcv.clientWidth, H = gcv.clientHeight;
+  const cell = 20;
+  const w = Math.floor(W/cell), h = Math.floor(H/cell);
+  gs = { cell, w, h, snake:[{x:Math.floor(w/2),y:Math.floor(h/2)}], dir:{x:1,y:0}, food:null, score:0, speed:9, run:true };
+  placeFood();
+  $('gBest').textContent = localStorage.getItem('snake_best') || 0;
+  $('gScore').textContent = 0;
+}
+function placeFood(){ let x,y; do{ x=Math.floor(Math.random()*gs.w); y=Math.floor(Math.random()*gs.h); }while(gs.snake.some(p=>p.x===x&&p.y===y)); gs.food={x,y}; }
+function drawGame(){
+  const {cell,w,h} = gs;
+  gctx.clearRect(0,0,gcv.clientWidth,gcv.clientHeight);
+  // grid
+  gctx.strokeStyle = 'rgba(255,255,255,0.025)'; gctx.lineWidth=1;
+  for (let i=1;i<w;i++){ gctx.beginPath(); gctx.moveTo(i*cell,0); gctx.lineTo(i*cell,h*cell); gctx.stroke(); }
+  for (let j=1;j<h;j++){ gctx.beginPath(); gctx.moveTo(0,j*cell); gctx.lineTo(w*cell,j*cell); gctx.stroke(); }
+  // food
+  gctx.fillStyle='#F5B458';
+  gctx.beginPath(); gctx.arc(gs.food.x*cell+cell/2, gs.food.y*cell+cell/2, cell/2-3, 0, Math.PI*2); gctx.fill();
+  // snake
+  gs.snake.forEach((p,i)=>{
+    const alpha = 1 - (i/(gs.snake.length+6))*0.7;
+    gctx.fillStyle = `rgba(94,234,212,${alpha})`;
+    gctx.fillRect(p.x*cell+2, p.y*cell+2, cell-4, cell-4);
+  });
+  // head glow
+  const head = gs.snake[0]; gctx.shadowBlur=12; gctx.shadowColor='rgba(94,234,212,0.7)';
+  gctx.fillStyle='#5EEAD4'; gctx.fillRect(head.x*cell+2, head.y*cell+2, cell-4, cell-4);
+  gctx.shadowBlur=0;
+}
+function stepGame(){
+  const head = gs.snake[0];
+  const nx = (head.x + gs.dir.x + gs.w) % gs.w;
+  const ny = (head.y + gs.dir.y + gs.h) % gs.h;
+  if (gs.snake.some(p=>p.x===nx&&p.y===ny)){ gs.run=false; return; }
+  gs.snake.unshift({x:nx,y:ny});
+  if (nx===gs.food.x && ny===gs.food.y){ gs.score+=1; $('gScore').textContent=gs.score; placeFood();
+    const best = +(localStorage.getItem('snake_best')||0);
+    if (gs.score > best){ localStorage.setItem('snake_best', gs.score); $('gBest').textContent=gs.score; }
+  } else gs.snake.pop();
+  drawGame();
+}
+function startGame(){
+  initGame();
+  let last = performance.now();
+  function loop(t){
+    if (!gs?.run){ drawGameOver(); return; }
+    if (t-last >= 1000/gs.speed){ stepGame(); last=t; }
+    ganim = requestAnimationFrame(loop);
+  }
+  ganim = requestAnimationFrame(loop);
+}
+function stopGame(){ if (ganim) cancelAnimationFrame(ganim); if (gs) gs.run=false; }
+function drawGameOver(){
+  drawGame();
+  gctx.fillStyle = 'rgba(8,9,12,0.8)'; gctx.fillRect(0,0,gcv.clientWidth,gcv.clientHeight);
+  gctx.fillStyle = '#5EEAD4'; gctx.font = '600 22px "JetBrains Mono", monospace'; gctx.textAlign='center';
+  gctx.fillText('GAME OVER', gcv.clientWidth/2, gcv.clientHeight/2-10);
+  gctx.fillStyle = '#9AA3B2'; gctx.font = '400 12px "JetBrains Mono", monospace';
+  gctx.fillText('press R to restart', gcv.clientWidth/2, gcv.clientHeight/2+16);
+}
+addEventListener('keydown', e => {
+  if (!gs || !gmodal.classList.contains('active')) return;
+  const k = e.key.toLowerCase();
+  if ((k==='arrowup'||k==='w') && gs.dir.y!==1) gs.dir={x:0,y:-1};
+  if ((k==='arrowdown'||k==='s') && gs.dir.y!==-1) gs.dir={x:0,y:1};
+  if ((k==='arrowleft'||k==='a') && gs.dir.x!==1) gs.dir={x:-1,y:0};
+  if ((k==='arrowright'||k==='d') && gs.dir.x!==-1) gs.dir={x:1,y:0};
+  if (k==='r'){ stopGame(); startGame(); }
+});
+// swipe support
+(function(){ let sx=0,sy=0; gcv.addEventListener('touchstart',e=>{const t=e.touches[0];sx=t.clientX;sy=t.clientY;},{passive:true});
+  gcv.addEventListener('touchend',e=>{const t=e.changedTouches[0];const dx=t.clientX-sx,dy=t.clientY-sy; if(Math.abs(dx)<20&&Math.abs(dy)<20)return;
+    if(Math.abs(dx)>Math.abs(dy)){ if(dx>0&&gs.dir.x!==-1) gs.dir={x:1,y:0}; else if(dx<0&&gs.dir.x!==1) gs.dir={x:-1,y:0}; }
+    else { if(dy>0&&gs.dir.y!==-1) gs.dir={x:0,y:1}; else if(dy<0&&gs.dir.y!==1) gs.dir={x:0,y:-1}; } },{passive:true});
+})();
+
+/* ===== Loader ===== */
+(function(){
+  const loader = document.getElementById('loader');
+  if (!loader) return;
+  if (localStorage.getItem('loaderSeen')){ loader.classList.add('hidden'); return; }
+  const fill = document.getElementById('lfill');
+  const term = document.getElementById('lterm');
+  const msgs = [
+    '[*] probing kernel surface',
+    '[*] locating hypervisor root',
+    '[*] mapping physical pages',
+    '[*] loading project manifest',
+    '[*] rendering ui',
+    '[ok] ready',
+  ];
+  let i=0;
+  term.innerHTML = msgs.map(m=>`<div>${m}</div>`).join('');
+  const lines = term.querySelectorAll('div');
+  const step = ()=>{
+    if (i<lines.length){ lines[i].classList.add('active'); if (i===lines.length-1) lines[i].classList.add('ok'); i++; }
+    fill.style.width = Math.min(100, (i/lines.length)*100)+'%';
+    if (i<lines.length) setTimeout(step, 220);
+    else setTimeout(finish, 350);
+  };
+  setTimeout(step, 120);
+  function finish(){ loader.classList.add('hidden'); localStorage.setItem('loaderSeen','1'); }
+  addEventListener('keydown', finish, {once:true});
+  addEventListener('click', finish, {once:true});
+  setTimeout(finish, 3500);
+})();
+
+/* ===== Smooth anchor scroll ===== */
+document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener('click', e=>{
+  const id = a.getAttribute('href');
+  if (id.length>1){ e.preventDefault(); const el=document.querySelector(id); if (el){ const top = el.getBoundingClientRect().top + window.scrollY - 20; window.scrollTo({top, behavior:'smooth'}); history.replaceState(null,'',id); } }
+}));
+syncNav();
+</script>
+</body>
+</html>
